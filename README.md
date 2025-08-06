@@ -9,6 +9,8 @@
 
 Ce projet consiste à développer une intelligence artificielle capable de battre des joueurs humains au **Gomoku**, un jeu de stratégie traditionnel joué sur un plateau de Go. L'IA utilise l'algorithme **Min-Max** avec une heuristique optimisée pour prendre des décisions rapides et efficaces.
 
+**Technologie :** Développé en **C++** avec une architecture orientée objet moderne.
+
 ## 🎯 Objectifs
 
 - Créer une IA imbattable au Gomoku
@@ -40,53 +42,97 @@ Ce projet consiste à développer une intelligence artificielle capable de battr
 
 ## 🛠️ Architecture Technique
 
+### Technologies utilisées
+- **Langage :** C++ (Standard C++17 ou supérieur)
+- **Paradigme :** Programmation orientée objet
+- **Bibliothèques graphiques :** SDL2 / SFML / Qt (au choix)
+- **Compilation :** Makefile avec g++ ou clang++
+
 ### Algorithme Principal
 - **Min-Max** avec élagage alpha-bêta
 - **Heuristique personnalisée** pour l'évaluation des positions
 - **Arbre de recherche** optimisé pour la performance
+- **Classes modulaires** pour une maintenance facilitée
 
 ### Composants principaux
 ```
 📦 Gomoku/
-├── 🧠 ia/                 # Intelligence artificielle
-│   ├── minimax.c         # Algorithme Min-Max
-│   ├── heuristic.c       # Fonction d'évaluation
-│   └── search.c          # Arbre de recherche
-├── 🎮 game/              # Logique de jeu
-│   ├── board.c           # Gestion du plateau
-│   ├── rules.c           # Règles du Gomoku
-│   └── capture.c         # Système de captures
-├── 🖼️  gui/               # Interface graphique
-│   ├── display.c         # Affichage
-│   ├── events.c          # Gestion des événements
-│   └── timer.c           # Timer de performance
-└── 📁 utils/             # Utilitaires
-    ├── debug.c           # Mode debug
-    └── utils.c           # Fonctions utilitaires
+├── 🧠 src/ia/             # Intelligence artificielle
+│   ├── Minimax.cpp       # Algorithme Min-Max
+│   ├── Minimax.hpp       # Header Min-Max
+│   ├── Heuristic.cpp     # Fonction d'évaluation
+│   ├── Heuristic.hpp     # Header heuristique
+│   ├── Search.cpp        # Arbre de recherche
+│   └── Search.hpp        # Header recherche
+├── 🎮 src/game/          # Logique de jeu
+│   ├── Board.cpp         # Gestion du plateau
+│   ├── Board.hpp         # Header plateau
+│   ├── Rules.cpp         # Règles du Gomoku
+│   ├── Rules.hpp         # Header règles
+│   ├── Capture.cpp       # Système de captures
+│   └── Capture.hpp       # Header captures
+├── 🖼️  src/gui/           # Interface graphique
+│   ├── Display.cpp       # Affichage
+│   ├── Display.hpp       # Header affichage
+│   ├── Events.cpp        # Gestion des événements
+│   ├── Events.hpp        # Header événements
+│   ├── Timer.cpp         # Timer de performance
+│   └── Timer.hpp         # Header timer
+├── 📁 src/utils/         # Utilitaires
+│   ├── Debug.cpp         # Mode debug
+│   ├── Debug.hpp         # Header debug
+│   ├── Utils.cpp         # Fonctions utilitaires
+│   └── Utils.hpp         # Header utilitaires
+├── 📁 include/           # Headers publics
+└── 📄 main.cpp           # Point d'entrée
+```
+
+### Architecture des Classes (OOP)
+```cpp
+🏗️  Architecture Orientée Objet
+├── 🎯 class Game          # Contrôleur principal du jeu
+├── 🏁 class Board         # Représentation du plateau 19x19
+├── 🧠 class AI            # Intelligence artificielle
+│   ├── MinMax             # Algorithme de recherche
+│   └── Heuristic          # Évaluation des positions
+├── 👤 class Player        # Gestion des joueurs (Humain/IA)
+├── 🎮 class GameEngine    # Logique du jeu et règles
+├── 🖼️  class GUI           # Interface graphique
+├── ⏱️  class Timer         # Mesure de performance
+└── 🐛 class Debug         # Outils de débogage
 ```
 
 ## ⚡ Fonctionnalités
 
 ### Partie Obligatoire
 - [ ] **Exécutable :** `Gomoku`
-- [ ] **Interface graphique :** Interface utilisable et agréable
-- [ ] **Makefile :** Compilation avec règles standard
 - [ ] **IA vs Humain :** Jeu contre l'intelligence artificielle
 - [ ] **Humain vs Humain :** Mode deux joueurs avec suggestions de l'IA
+- [ ] **Interface graphique :** Interface utilisable et agréable
 - [ ] **Timer de performance :** Affichage du temps de réflexion de l'IA
 - [ ] **Mode debug :** Visualisation du processus de décision de l'IA
+- [ ] **Makefile :** Compilation avec règles standard
 
 ### Partie Bonus (à implémenter après validation de la partie obligatoire)
 - [ ] **Fonctionnalités supplémentaires :** À définir
 
 ## 🔧 Compilation et Installation
 
+### Prérequis
+- **Compilateur :** g++ ou clang++ (support C++17)
+- **Bibliothèque graphique :** SDL2 / SFML / Qt
+- **Make :** Version récente
+
+### Compilation
 ```bash
-# Compilation
+# Compilation standard
 make
 
-# Compilation complète
+# Compilation avec optimisations
 make all
+
+# Compilation en mode debug
+make debug
 
 # Nettoyage des fichiers objets
 make clean
@@ -94,8 +140,13 @@ make clean
 # Nettoyage complet
 make fclean
 
-# Recompilation
+# Recompilation complète
 make re
+```
+
+### Flags de compilation recommandés
+```makefile
+CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -O2
 ```
 
 ## 🚀 Utilisation
@@ -147,13 +198,20 @@ Ce projet est développé dans le cadre d'un cursus académique. Les contributio
 
 ## 📚 Ressources
 
+### Gomoku et Algorithmes
 - [Règles du Gomoku](https://en.wikipedia.org/wiki/Gomoku)
 - [Algorithme Min-Max](https://en.wikipedia.org/wiki/Minimax)
 - [Ninuki-renju (Captures)](https://en.wikipedia.org/wiki/Ninuki-renju)
+- [Alpha-Beta Pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
+
+### C++ et Développement
+- [Modern C++ Guide](https://github.com/AnthonyCalandra/modern-cpp-features)
+- [SDL2 Documentation](https://wiki.libsdl.org/)
+- [SFML Documentation](https://www.sfml-dev.org/documentation/)
 
 ---
 
 **🎯 Statut actuel :** Analyse du projet et planification de l'architecture  
 **⏳ Prochaine étape :** Implémentation de la structure de base et du plateau de jeu
 
-*Projet réalisé dans le cadre du cursus 42*
+*Projet réalisé dans le cadre du cursus 42* 
