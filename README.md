@@ -68,17 +68,15 @@ Ce projet consiste à développer une intelligence artificielle capable de battr
 ## ⚡ Fonctionnalités
 
 ### Partie Obligatoire
-- [x] **Exécutable :** `Gomoku`
+- [ ] **Exécutable :** `Gomoku`
+- [ ] **Interface graphique :** Interface utilisable et agréable
+- [ ] **Makefile :** Compilation avec règles standard
 - [ ] **IA vs Humain :** Jeu contre l'intelligence artificielle
 - [ ] **Humain vs Humain :** Mode deux joueurs avec suggestions de l'IA
-- [ ] **Interface graphique :** Interface utilisable et agréable
 - [ ] **Timer de performance :** Affichage du temps de réflexion de l'IA
 - [ ] **Mode debug :** Visualisation du processus de décision de l'IA
-- [ ] **Makefile :** Compilation avec règles standard
 
 ### Partie Bonus (à implémenter après validation de la partie obligatoire)
-- [ ] **Choix des règles :** Sélection des règles de jeu au démarrage
-- [ ] **Conditions de départ :** Standard, Pro, Swap, Swap2...
 - [ ] **Fonctionnalités supplémentaires :** À définir
 
 ## 🔧 Compilation et Installation
