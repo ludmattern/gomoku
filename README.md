@@ -1,35 +1,33 @@
 # 🧠 Gomoku IA - Intelligence Artificielle de Jeu de Stratégie
 
-**Version:** 3.2  
 **Statut:** 🚧 **IN PROGRESS** 🚧
-
-> *"Yeah, well, your brain has to fry sometime"*
 
 ## 📋 Description
 
-Ce projet consiste à développer une intelligence artificielle capable de battre des joueurs humains au **Gomoku**, un jeu de stratégie traditionnel joué sur un plateau de Go. L'IA utilise l'algorithme **Min-Max** avec une heuristique optimisée pour prendre des décisions rapides et efficaces.
+Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intelligence artificielle capable de battre des joueurs humains. **Gomoku** un jeu de stratégie traditionnel joué sur un plateau de Go. L'IA utilise l'algorithme **Min-Max** avec une heuristique optimisée pour prendre des décisions rapides et efficaces.
 
 **Technologie :** Développé en **C++** avec une architecture orientée objet moderne.
 
 ## 🎯 Objectifs
 
+- Developper le jeu Gomoku en c++
+- Développer une interface graphique intuitive et agréable
 - Créer une IA imbattable au Gomoku
 - Implémenter l'algorithme Min-Max avec une heuristique performante
-- Développer une interface graphique intuitive et agréable
 - Respecter les contraintes de performance (≤ 0.5s par coup en moyenne)
 
 ## 🎮 Règles du Jeu
 
 ### Règles de base
-- **Plateau :** 19x19 (Goban standard)
+- **Plateau :** 19x19
 - **Victoire :** Aligner 5 pierres ou plus
 - **Joueurs :** 2 joueurs alternent pour placer leurs pierres
 
 ### Règles spéciales implémentées
 
 #### 🎯 **Captures (Ninuki-renju/Pente)**
-- Capturer une paire de pierres adverses en les flanquant
-- **Condition de victoire :** Capturer 10 pierres adverses
+- Capturer une paire de pierres adverses en les encerclant
+- **Condition de victoire :** Capturer 10 pierres adverses au total
 - Les intersections libérées peuvent être rejouées
 
 #### 🏁 **Capture en fin de partie**
@@ -43,10 +41,9 @@ Ce projet consiste à développer une intelligence artificielle capable de battr
 ## 🛠️ Architecture Technique
 
 ### Technologies utilisées
-- **Langage :** C++ (Standard C++17 ou supérieur)
-- **Paradigme :** Programmation orientée objet
-- **Bibliothèques graphiques :** SDL2 / SFML / Qt (au choix)
-- **Compilation :** Makefile avec g++ ou clang++
+- **Langage :** C++
+- **Bibliothèques graphiques :** A definir 
+- **Compilation :** Compilateur a definir
 
 ### Algorithme Principal
 - **Min-Max** avec élagage alpha-bêta
@@ -58,31 +55,9 @@ Ce projet consiste à développer une intelligence artificielle capable de battr
 ```
 📦 Gomoku/
 ├── 🧠 src/ia/             # Intelligence artificielle
-│   ├── Minimax.cpp       # Algorithme Min-Max
-│   ├── Minimax.hpp       # Header Min-Max
-│   ├── Heuristic.cpp     # Fonction d'évaluation
-│   ├── Heuristic.hpp     # Header heuristique
-│   ├── Search.cpp        # Arbre de recherche
-│   └── Search.hpp        # Header recherche
 ├── 🎮 src/game/          # Logique de jeu
-│   ├── Board.cpp         # Gestion du plateau
-│   ├── Board.hpp         # Header plateau
-│   ├── Rules.cpp         # Règles du Gomoku
-│   ├── Rules.hpp         # Header règles
-│   ├── Capture.cpp       # Système de captures
-│   └── Capture.hpp       # Header captures
 ├── 🖼️  src/gui/           # Interface graphique
-│   ├── Display.cpp       # Affichage
-│   ├── Display.hpp       # Header affichage
-│   ├── Events.cpp        # Gestion des événements
-│   ├── Events.hpp        # Header événements
-│   ├── Timer.cpp         # Timer de performance
-│   └── Timer.hpp         # Header timer
 ├── 📁 src/utils/         # Utilitaires
-│   ├── Debug.cpp         # Mode debug
-│   ├── Debug.hpp         # Header debug
-│   ├── Utils.cpp         # Fonctions utilitaires
-│   └── Utils.hpp         # Header utilitaires
 ├── 📁 include/           # Headers publics
 └── 📄 main.cpp           # Point d'entrée
 ```
@@ -93,8 +68,6 @@ Ce projet consiste à développer une intelligence artificielle capable de battr
 ├── 🎯 class Game          # Contrôleur principal du jeu
 ├── 🏁 class Board         # Représentation du plateau 19x19
 ├── 🧠 class AI            # Intelligence artificielle
-│   ├── MinMax             # Algorithme de recherche
-│   └── Heuristic          # Évaluation des positions
 ├── 👤 class Player        # Gestion des joueurs (Humain/IA)
 ├── 🎮 class GameEngine    # Logique du jeu et règles
 ├── 🖼️  class GUI           # Interface graphique
@@ -106,8 +79,9 @@ Ce projet consiste à développer une intelligence artificielle capable de battr
 
 ### Partie Obligatoire
 - [ ] **Exécutable :** `Gomoku`
-- [ ] **IA vs Humain :** Jeu contre l'intelligence artificielle
+- [ ] **Menu :** Menu Principal
 - [ ] **Humain vs Humain :** Mode deux joueurs avec suggestions de l'IA
+- [ ] **IA vs Humain :** Jeu contre l'intelligence artificielle
 - [ ] **Interface graphique :** Interface utilisable et agréable
 - [ ] **Timer de performance :** Affichage du temps de réflexion de l'IA
 - [ ] **Mode debug :** Visualisation du processus de décision de l'IA
