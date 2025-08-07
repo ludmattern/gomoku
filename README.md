@@ -93,10 +93,10 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 - [ ] **IA vs Humain :** Jeu contre l'intelligence artificielle
 - [ ] **Mode debug :** Visualisation du processus de décision de l'IA
 ##### Partie Bonus (à implémenter après validation de la partie obligatoire)
-- [ ] **Differents niveaux de difficultees
+- [ ] **Differents niveaux de difficultees :** Choix entre Facile, Moyen et Standard
 
 #### En attente d'affectation...
-- [ ] LeaderBoard type arcade (nombre de coups) / difficutee
+- [ ] **LeaderBoard :** Leaderboard type arcade (nombre de coups) / difficutee
 
 ## 🔧 Compilation et Installation
 
