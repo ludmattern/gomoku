@@ -88,7 +88,11 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 - [ ] **Makefile :** Compilation avec règles standard
 
 ### Partie Bonus (à implémenter après validation de la partie obligatoire)
-- [ ] **Fonctionnalités supplémentaires :** À définir
+- [ ] **Fonctionnalités supplémentaires :** Design avance
+- [ ] Differents niveaux de difficultees
+- [ ] Sound design
+- [ ] Game customisation
+- [ ] LeaderBoard type arcade
 
 ## 🔧 Compilation et Installation
 
