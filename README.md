@@ -21,7 +21,7 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 ### Règles de base
 - **Plateau :** 19x19
 - **Victoire :** Aligner 5 pierres ou plus
-- **Joueurs :** 2 joueurs alternent pour placer leurs pierres
+- **Joueurs :** 2 Joueurs tour par tour
 
 ### Règles spéciales implémentées
 
@@ -41,9 +41,10 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 ## 🛠️ Architecture Technique
 
 ### Technologies utilisées
-- **Langage :** C++
-- **Bibliothèques graphiques :** A definir 
-- **Compilation :** Compilateur a definir
+- **Langage :** C++17
+- **Bibliothèque graphique :** SFML 2.6.1
+- **Compilation :** g++ avec Makefile
+- **Dépendances audio :** OpenAL, Vorbis, FLAC
 
 ### Algorithme Principal
 - **Min-Max** avec élagage alpha-bêta
@@ -88,14 +89,28 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 - [ ] **Makefile :** Compilation avec règles standard
 
 ### Partie Bonus (à implémenter après validation de la partie obligatoire)
-- [ ] **Fonctionnalités supplémentaires :** À définir
+- [ ] Design isometrique
+- [ ] Choix difficultee
+- [ ] 
 
 ## 🔧 Compilation et Installation
 
 ### Prérequis
 - **Compilateur :** g++ ou clang++ (support C++17)
-- **Bibliothèque graphique :** SDL2 / SFML / Qt
+- **Bibliothèque graphique :** SFML 2.6.1 (installé automatiquement)
 - **Make :** Version récente
+- **CMake :** Pour la compilation des dépendances
+
+### Installation des dépendances
+```bash
+# Vérification des dépendances
+make check-deps
+# Installation automatique de SFML et dépendances
+make SFML
+
+# Vérification des dépendances
+make check-deps
+```
 
 ### Compilation
 ```bash
@@ -116,24 +131,67 @@ make fclean
 
 # Recompilation complète
 make re
+
+# Installation dans ~/bin/
+make install
+
+# Désinstallation
+make uninstall
+
+# Aide et informations
+make help
 ```
 
 ### Flags de compilation recommandés
 ```makefile
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -O2
+SFML_DIR = /home/jgavairo/local
+SFML_INCLUDE = -I$(SFML_DIR)/include
+SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 ```
 
 ## 🚀 Utilisation
 
+### Installation et compilation
 ```bash
-# Lancement du jeu
+# Installation des dépendances
+make SFML
+
+# Compilation du projet
+make
+
+# Installation globale (optionnel)
+make install
+```
+
+### Lancement du jeu
+```bash
+# Depuis le dossier du projet
 ./Gomoku
+
+# Si installé globalement
+Gomoku
 
 # Mode debug (si implémenté)
 ./Gomoku --debug
 
 # Aide
 ./Gomoku --help
+```
+
+### Commandes de développement
+```bash
+# Vérification des dépendances
+make check-deps
+
+# Compilation en mode debug
+make debug
+
+# Nettoyage
+make clean
+
+# Aide Makefile
+make help
 ```
 
 ## 📊 Contraintes de Performance
@@ -185,7 +243,7 @@ Ce projet est développé dans le cadre d'un cursus académique. Les contributio
 
 ---
 
-**🎯 Statut actuel :** Analyse du projet et planification de l'architecture  
-**⏳ Prochaine étape :** Implémentation de la structure de base et du plateau de jeu
+**🎯 Statut actuel :** Configuration complète et Makefile fonctionnel  
+**⏳ Prochaine étape :** Implémentation de la fenêtre SFML et du plateau de jeu 19x19
 
 *Projet réalisé dans le cadre du cursus 42* 
