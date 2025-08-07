@@ -78,8 +78,10 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 ## ⚡ Fonctionnalités
 
 ### Partie Obligatoire
-- [ ] **Exécutable :** `Gomoku`
+**Jgavairo**
 - [ ] **Menu :** Menu Principal
+
+**Lmattern**
 - [ ] **Humain vs Humain :** Mode deux joueurs avec suggestions de l'IA
 - [ ] **IA vs Humain :** Jeu contre l'intelligence artificielle
 - [ ] **Interface graphique :** Interface utilisable et agréable
