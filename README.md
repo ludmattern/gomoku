@@ -96,11 +96,6 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 ##### Partie Bonus (à implémenter après validation de la partie obligatoire)
 - [ ] **Differents niveaux de difficultees :** Choix entre Facile, Moyen et Standard
 
-### Partie Bonus (à implémenter après validation de la partie obligatoire)
-- [ ] Design isometrique
-- [ ] Choix difficultee
-- [ ] 
-
 ## 🔧 Compilation et Installation
 
 ### Prérequis
