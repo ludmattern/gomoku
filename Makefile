@@ -3,11 +3,23 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -O2
 
-# Configuration SFML
-SFML_DIR = /home/jgavairo/local
-SFML_INCLUDE = -I$(SFML_DIR)/include
-SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
-SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
+# Détection du système d'exploitation
+UNAME_S := $(shell uname -s)
+
+# Configuration SFML selon le système
+ifeq ($(UNAME_S),Darwin)
+    # macOS avec Homebrew
+    SFML_DIR = /opt/homebrew
+    SFML_INCLUDE = -I$(SFML_DIR)/include
+    SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+    SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
+else
+    # Linux (configuration originale)
+    SFML_DIR = /home/jgavairo/local
+    SFML_INCLUDE = -I$(SFML_DIR)/include
+    SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+    SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
+endif
 
 # Dossiers du projet
 SRC_DIR = src
@@ -73,30 +85,33 @@ install: $(TARGET)
 # Règle SFML - Installation de SFML et dépendances
 SFML:
 	@echo "🎮 Vérification de SFML..."
-	@if [ -d "$(SFML_DIR)" ] && [ -f "$(SFML_DIR)/lib/libsfml-graphics.so" ]; then \
-		echo "✅ SFML est déjà installé dans $(SFML_DIR)"; \
-		echo "📚 Bibliothèques disponibles:"; \
-		ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
-		echo "🔍 Vérification des dépendances..."; \
-		make check-deps; \
-	else \
-		echo "📦 SFML non trouvé, installation en cours..."; \
-		echo "📦 Téléchargement et compilation des bibliothèques..."; \
-		if [ -f "./scripts/install_sfml.sh" ]; then \
-			./scripts/install_sfml.sh; \
+	@if [ "$(UNAME_S)" = "Darwin" ]; then \
+		echo "🍎 Système macOS détecté"; \
+		if brew list sfml >/dev/null 2>&1; then \
+			echo "✅ SFML installé via Homebrew"; \
+			echo "📚 Bibliothèques disponibles:"; \
+			ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
 		else \
-			echo "❌ Script scripts/install_sfml.sh non trouvé !"; \
-			echo "📝 Création du script d'installation..."; \
-			mkdir -p scripts; \
-			echo "#!/bin/bash" > scripts/install_sfml.sh; \
-			echo "echo 'Script d'installation SFML à créer...'" >> scripts/install_sfml.sh; \
-			chmod +x scripts/install_sfml.sh; \
-			echo "⚠️  Veuillez créer le script scripts/install_sfml.sh manuellement"; \
+			echo "📦 Installation de SFML via Homebrew..."; \
+			brew install sfml; \
+			echo "✅ SFML installé avec succès !"; \
 		fi; \
-		echo "✅ Installation SFML terminée !"; \
-		echo "🔍 Vérification des dépendances..."; \
-		make check-deps; \
+	else \
+		if [ -d "$(SFML_DIR)" ] && [ -f "$(SFML_DIR)/lib/libsfml-graphics.so" ]; then \
+			echo "✅ SFML est déjà installé dans $(SFML_DIR)"; \
+			echo "📚 Bibliothèques disponibles:"; \
+			ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
+		else \
+			echo "📦 SFML non trouvé, installation en cours..."; \
+			if [ -f "./scripts/install_sfml.sh" ]; then \
+				./scripts/install_sfml.sh; \
+			else \
+				echo "❌ Script scripts/install_sfml.sh non trouvé !"; \
+			fi; \
+		fi; \
 	fi
+	@echo "🔍 Vérification des dépendances..."; \
+	make check-deps
 
 # Règle uninstall
 uninstall:
@@ -120,6 +135,7 @@ help:
 	@echo "  help     - Affiche cette aide"
 	@echo ""
 	@echo "🔧 Configuration :"
+	@echo "  Système: $(UNAME_S)"
 	@echo "  Compilateur: $(CXX)"
 	@echo "  Flags: $(CXXFLAGS)"
 	@echo "  SFML: $(SFML_DIR)"
@@ -127,12 +143,23 @@ help:
 # Règle pour vérifier les dépendances
 check-deps:
 	@echo "🔍 Vérification des dépendances..."
+	@echo "Système: $(UNAME_S)"
 	@echo "SFML: $(SFML_DIR)"
-	@if [ -d "$(SFML_DIR)" ]; then \
-		echo "✅ SFML trouvé dans $(SFML_DIR)"; \
-		ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
+	@if [ "$(UNAME_S)" = "Darwin" ]; then \
+		if brew list sfml >/dev/null 2>&1; then \
+			echo "✅ SFML installé via Homebrew"; \
+			ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
+		else \
+			echo "❌ SFML non installé via Homebrew"; \
+			echo "💡 Exécutez: brew install sfml"; \
+		fi; \
 	else \
-		echo "❌ SFML non trouvé dans $(SFML_DIR)"; \
+		if [ -d "$(SFML_DIR)" ]; then \
+			echo "✅ SFML trouvé dans $(SFML_DIR)"; \
+			ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
+		else \
+			echo "❌ SFML non trouvé dans $(SFML_DIR)"; \
+		fi; \
 	fi
 
 # Règle pour tester la compilation
