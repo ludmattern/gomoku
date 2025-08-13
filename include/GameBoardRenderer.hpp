@@ -21,6 +21,8 @@ class GameBoardRenderer
         void render(sf::RenderWindow& window);
         void updateCell(int x, int y, CellState state);
         
+        // Conversion isométrique centrée
+        sf::Vector2f isoToScreen(int i, int j, float tileW, float tileH, float centerX, float centerY);
 
     private:
         CellState _board[19][19];

@@ -1,5 +1,9 @@
 #include "GameBoardRenderer.hpp"
 #include <iostream>
+#include <cmath>
+
+static constexpr int N_INTERSECTIONS = 19;
+static constexpr int CENTER_INDEX = (N_INTERSECTIONS - 1) / 2;
 
 GameBoardRenderer::GameBoardRenderer(void)
 {
@@ -28,80 +32,74 @@ void GameBoardRenderer::cleanup(void)
 
 void GameBoardRenderer::updateCell(int x, int y, CellState state)
 {
+    if (x < 0 || x >= 19 || y < 0 || y >= 19)
+        return;
     _board[x][y] = state;
+}
+
+sf::Vector2f GameBoardRenderer::isoToScreen(int i, int j, float tileW, float tileH, float centerX, float centerY)
+{
+    const float u = static_cast<float>(i - CENTER_INDEX);
+    const float v = static_cast<float>(j - CENTER_INDEX);
+    return sf::Vector2f(
+        centerX + (u - v) * (tileW * 0.5f),
+        centerY + (u + v) * (tileH * 0.5f)
+    );
 }
 
 void GameBoardRenderer::render(sf::RenderWindow& window)
 {
-    const int gridSize = 600;
-    const int cellSize = gridSize / 19;
-    const int startX = (1920 - gridSize) / 3;
-    const int startY = (1080 - gridSize) / 4;
+    // Taille fenêtre et centre
+    const auto size = window.getSize();
+    const float centerX = static_cast<float>(size.x) * 0.5f;
+    const float centerY = static_cast<float>(size.y) * 0.5f;
 
-    // Changer de 19 à 20 lignes
-    // for (int i = 0; i < 20; i++)  // 20 lignes horizontales
-    // {
-    //     sf::RectangleShape line(sf::Vector2f(gridSize - 10, 2));
-    //     line.setPosition(sf::Vector2f(startX, startY + i * cellSize));
-    //     line.setFillColor(sf::Color::White);
-    //     window.draw(line);
-    // }
+    // Vraie isométrie: tileH = tileW / 2
+    const float tileW = std::min(size.x * 0.8f / 18.f, size.y * 0.8f * 2.f / 18.f);
+    const float tileH = tileW * 0.5f;
 
-    // for (int j = 0; j < 20; j++)  // 20 lignes verticales
-    // {
-    //     sf::RectangleShape line(sf::Vector2f(2, gridSize - 10));
-    //     line.setPosition(sf::Vector2f(startX + j * cellSize, startY));
-    //     line.setFillColor(sf::Color::White);
-    //     window.draw(line);
-    // }
-    
-    // Dessiner la grille noire (intersections au centre des cases blanches)
-    const int blackGridStartX = startX + cellSize / 2;  // Décalé de la moitié d'une case
-    const int blackGridStartY = startY + cellSize / 2;  // Décalé de la moitié d'une case
-
-    for (int i = 0; i < 19; i++)
+    // Grille: lignes i = const
+    for (int i = 0; i < N_INTERSECTIONS; ++i)
     {
-        sf::RectangleShape line(sf::Vector2f(gridSize - (cellSize + 10), 2));  // Plus fine
-        line.setPosition(sf::Vector2f(blackGridStartX, blackGridStartY + i * cellSize));
+        sf::Vector2f a = isoToScreen(i, 0,  tileW, tileH, centerX, centerY);
+        sf::Vector2f b = isoToScreen(i, 18, tileW, tileH, centerX, centerY);
+        const float dx = b.x - a.x, dy = b.y - a.y;
+        const float len = std::sqrt(dx*dx + dy*dy);
+        sf::RectangleShape line(sf::Vector2f(len, 2.f));
+        line.setPosition(a);
+        line.setRotation(sf::radians(std::atan2(dy, dx)));
         line.setFillColor(sf::Color::White);
         window.draw(line);
     }
 
-    for (int j = 0; j < 19; j++)
+    // Grille: lignes j = const
+    for (int j = 0; j < N_INTERSECTIONS; ++j)
     {
-        sf::RectangleShape line(sf::Vector2f(2, gridSize - (cellSize + 10)));  // Plus fine
-        line.setPosition(sf::Vector2f(blackGridStartX + j * cellSize, blackGridStartY));
+        sf::Vector2f a = isoToScreen(0,  j, tileW, tileH, centerX, centerY);
+        sf::Vector2f b = isoToScreen(18, j, tileW, tileH, centerX, centerY);
+        const float dx = b.x - a.x, dy = b.y - a.y;
+        const float len = std::sqrt(dx*dx + dy*dy);
+        sf::RectangleShape line(sf::Vector2f(len, 2.f));
+        line.setPosition(a);
+        line.setRotation(sf::radians(std::atan2(dy, dx)));
         line.setFillColor(sf::Color::White);
         window.draw(line);
     }
 
-    for (int i = 0; i < 19; i++)
+    // Pierres aux intersections
+    for (int i = 0; i < N_INTERSECTIONS; ++i)
     {
-        for (int j = 0; j < 19; j++)
+        for (int j = 0; j < N_INTERSECTIONS; ++j)
         {
-            switch (_board[i][j])
-            {
-                case CellState::Player1:
-                {
-                    sf::CircleShape circle(cellSize / 3);
-                    circle.setPosition(sf::Vector2f(startX + i * cellSize + cellSize / 6, startY + j * cellSize + cellSize / 6));
-                    circle.setFillColor(sf::Color::White);
-                    window.draw(circle);
-                    break;
-                }
-                case CellState::Player2:
-                {
+            if (_board[i][j] == CellState::Empty)
+                continue;
 
-                    sf::CircleShape circle(cellSize / 3);
-                    circle.setPosition(sf::Vector2f(startX + i * cellSize + cellSize / 6, startY + j * cellSize + cellSize / 6 ));
-                    circle.setFillColor(sf::Color::Black);
-                    window.draw(circle);
-                    break;
-                }
-                default:
-                    break;
-            }
+            const sf::Vector2f p = isoToScreen(i, j, tileW, tileH, centerX, centerY);
+            const float r = tileW * 0.3f;
+            sf::CircleShape stone(r);
+            stone.setPosition(sf::Vector2f(p.x - r, p.y - r));
+            stone.setFillColor(_board[i][j] == CellState::Player1 ? sf::Color::White : sf::Color::Black);
+            window.draw(stone);
         }
     }
-
 }
