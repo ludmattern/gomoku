@@ -3,7 +3,7 @@
 #include <cmath>
 #include "GameBoardRenderer.hpp"
 
-GameWindow::GameWindow(void)
+GameWindow::GameWindow(void) : _ressourceManager("default")
 {
     _isRunning = false;
     init();
@@ -26,6 +26,16 @@ void GameWindow::init(void)
         "Gomoku"
     );
     _window.setFramerateLimit(60);
+    if (!_ressourceManager.init())
+    {
+        std::cerr << "Failed to initialize RessourceManager" << std::endl;
+        return;
+    }
+    _boardRenderer.setTextures(
+        _ressourceManager.getTexture("board"),
+        _ressourceManager.getTexture("pawn1"),
+        _ressourceManager.getTexture("pawn2")
+    );
     _isRunning = true;
 }
 
@@ -93,6 +103,7 @@ void GameWindow::handleEvents(void)
 
 void GameWindow::cleanup(void)
 {
+    _ressourceManager.cleanup();
     _window.close();
     _isRunning = false;
 }

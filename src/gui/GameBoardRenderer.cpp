@@ -5,7 +5,7 @@
 static constexpr int N_INTERSECTIONS = 19;
 static constexpr int CENTER_INDEX = (N_INTERSECTIONS - 1) / 2;
 
-GameBoardRenderer::GameBoardRenderer(void)
+GameBoardRenderer::GameBoardRenderer(void): _boardSprite(nullptr), _pawn1Sprite(nullptr), _pawn2Sprite(nullptr)
 {
     init();
 }
@@ -28,6 +28,12 @@ void GameBoardRenderer::init(void)
 
 void GameBoardRenderer::cleanup(void)
 {
+    delete _boardSprite;
+    delete _pawn1Sprite;
+    delete _pawn2Sprite;
+    _boardSprite = nullptr;
+    _pawn1Sprite = nullptr;
+    _pawn2Sprite = nullptr;
 }
 
 void GameBoardRenderer::updateCell(int x, int y, CellState state)
@@ -45,6 +51,23 @@ sf::Vector2f GameBoardRenderer::isoToScreen(int i, int j, float tileW, float til
         centerX + (u - v) * (tileW * 0.5f),
         centerY + (u + v) * (tileH * 0.5f)
     );
+}
+
+void GameBoardRenderer::setTextures(sf::Texture& boardTexture, sf::Texture& pawn1Texture, sf::Texture& pawn2Texture)
+{
+    delete _boardSprite;
+    delete _pawn1Sprite;
+    delete _pawn2Sprite;
+
+    _boardSprite = new sf::Sprite(boardTexture);
+    _pawn1Sprite = new sf::Sprite(pawn1Texture);
+    _pawn2Sprite = new sf::Sprite(pawn2Texture);
+
+    if (!_boardSprite || !_pawn1Sprite || !_pawn2Sprite)
+    {
+        std::cerr << "Failed to set textures" << std::endl;
+        return;
+    }
 }
 
 void GameBoardRenderer::render(sf::RenderWindow& window)
@@ -72,19 +95,31 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
         window.draw(line);
     }
 
-    // Grille: lignes j = const
-    for (int j = 0; j < N_INTERSECTIONS; ++j)
+    if (_boardSprite)
     {
-        sf::Vector2f a = isoToScreen(0,  j, tileW, tileH, centerX, centerY);
-        sf::Vector2f b = isoToScreen(18, j, tileW, tileH, centerX, centerY);
-        const float dx = b.x - a.x, dy = b.y - a.y;
-        const float len = std::sqrt(dx*dx + dy*dy);
-        sf::RectangleShape line(sf::Vector2f(len, 2.f));
-        line.setPosition(a);
-        line.setRotation(sf::radians(std::atan2(dy, dx)));
-        line.setFillColor(sf::Color::White);
-        window.draw(line);
+        const sf::Texture& texture = _boardSprite->getTexture();
+        float scaleX = static_cast<float>(size.x) / texture.getSize().x;
+        float scaleY = static_cast<float>(size.y) / texture.getSize().y;
+        float scale = std::min(scaleX, scaleY);
+
+        _boardSprite->setPosition(sf::Vector2f(5, 5));
+        _boardSprite->setScale(sf::Vector2f(scale, scale));
+        window.draw(*_boardSprite);
     }
+
+    // // Grille: lignes j = const
+    // for (int j = 0; j < N_INTERSECTIONS; ++j)
+    // {
+    //     sf::Vector2f a = isoToScreen(0,  j, tileW, tileH, centerX, centerY);
+    //     sf::Vector2f b = isoToScreen(18, j, tileW, tileH, centerX, centerY);
+    //     const float dx = b.x - a.x, dy = b.y - a.y;
+    //     const float len = std::sqrt(dx*dx + dy*dy);
+    //     sf::RectangleShape line(sf::Vector2f(len, 2.f));
+    //     line.setPosition(a);
+    //     line.setRotation(sf::radians(std::atan2(dy, dx)));
+    //     line.setFillColor(sf::Color::White);
+    //     window.draw(line);
+    // }
 
     // Pierres aux intersections
     for (int i = 0; i < N_INTERSECTIONS; ++i)
@@ -103,3 +138,4 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
         }
     }
 }
+

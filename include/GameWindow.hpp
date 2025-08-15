@@ -1,8 +1,15 @@
 #ifndef GAME_WINDOW_HPP
 # define GAME_WINDOW_HPP
 
-#include <SFML/Graphics.hpp>
 #include "GameBoardRenderer.hpp"
+#include "core/RessourceManager.hpp"
+#include <SFML/Graphics.hpp>
+
+enum class GameState
+{
+    MainMenu,
+    Game
+};
 
 class GameWindow
 {
@@ -22,6 +29,7 @@ class GameWindow
         sf::RenderWindow _window;
         bool _isRunning;
         GameBoardRenderer _boardRenderer;
+        RessourceManager _ressourceManager;
     };
 
 #endif
