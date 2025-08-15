@@ -30,6 +30,7 @@ class GameWindow
         bool _isRunning;
         GameBoardRenderer _boardRenderer;
         RessourceManager _ressourceManager;
+        sf::Sprite* _backgroundSprite;
     };
 
 #endif

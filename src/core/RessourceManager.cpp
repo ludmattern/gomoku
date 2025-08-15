@@ -14,6 +14,11 @@ bool RessourceManager::init(void)
 {
     std::cout << "Initializing RessourceManager" << std::endl;
 
+    if (!loadTexture("background", TEXTURE_PATH + "background.png"))
+    {
+        std::cerr << "Failed to load background texture" << std::endl;
+        return false;
+    }
     if (!loadTexture("board", TEXTURE_PATH + "board.png"))
     {
         std::cerr << "Failed to load board texture" << std::endl;

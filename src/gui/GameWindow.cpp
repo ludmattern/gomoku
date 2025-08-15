@@ -3,7 +3,7 @@
 #include <cmath>
 #include "GameBoardRenderer.hpp"
 
-GameWindow::GameWindow(void) : _ressourceManager("default")
+GameWindow::GameWindow(void) : _ressourceManager("default"), _backgroundSprite(nullptr)
 {
     _isRunning = false;
     init();
@@ -31,6 +31,10 @@ void GameWindow::init(void)
         std::cerr << "Failed to initialize RessourceManager" << std::endl;
         return;
     }
+    
+    // Créer le background sprite
+    _backgroundSprite = new sf::Sprite(_ressourceManager.getTexture("background"));
+    
     _boardRenderer.setTextures(
         _ressourceManager.getTexture("board"),
         _ressourceManager.getTexture("pawn1"),
@@ -103,15 +107,23 @@ void GameWindow::handleEvents(void)
 
 void GameWindow::cleanup(void)
 {
+    delete _backgroundSprite;
+    _backgroundSprite = nullptr;
     _ressourceManager.cleanup();
     _window.close();
     _isRunning = false;
 }
 
-
 void GameWindow::render(void)
 {
-    _window.clear(sf::Color::Blue);
+    _window.clear(sf::Color::Black);
+    
+    // Dessiner le background
+    if (_backgroundSprite)
+    {
+        _window.draw(*_backgroundSprite);
+    }
+    
     renderBoard();
     _window.display();
 }
