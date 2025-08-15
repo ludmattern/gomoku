@@ -59,6 +59,7 @@ bool RessourceManager::loadTexture(const std::string& name, const std::string& p
         std::cerr << "Failed to load texture " << name << " from " << path << std::endl;
         return false;
     }
+    texture.setSmooth(true);
     _textures[name] = std::move(texture);
     std::cout << "Texture " << name << " loaded" << std::endl;
     return true;

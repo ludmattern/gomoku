@@ -130,11 +130,27 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
                 continue;
 
             const sf::Vector2f p = isoToScreen(i, j, tileW, tileH, centerX, centerY);
-            const float r = tileW * 0.3f;
-            sf::CircleShape stone(r);
-            stone.setPosition(sf::Vector2f(p.x - r, p.y - r));
-            stone.setFillColor(_board[i][j] == CellState::Player1 ? sf::Color::White : sf::Color::Black);
-            window.draw(stone);
+
+            if (_board[i][j] == CellState::Player1)
+            {
+                float pawnSize = tileW  * 0.6f;
+                float scale = pawnSize / _pawn1Sprite->getTexture().getSize().x;
+
+                _pawn1Sprite->setPosition(sf::Vector2f(p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5));
+                _pawn1Sprite->setScale(sf::Vector2f(scale, scale));
+                window.draw(*_pawn1Sprite);
+                continue;
+            }
+
+            if (_board[i][j] == CellState::Player2)
+            {
+                float pawnSize = tileW  * 0.6f;
+                float scale = pawnSize / _pawn2Sprite->getTexture().getSize().x;
+
+                _pawn2Sprite->setPosition(sf::Vector2f(p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5));
+                _pawn2Sprite->setScale(sf::Vector2f(scale, scale));
+                window.draw(*_pawn2Sprite);
+            }
         }
     }
 }
