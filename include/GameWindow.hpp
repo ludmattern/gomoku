@@ -4,6 +4,9 @@
 #include "GameBoardRenderer.hpp"
 #include "core/RessourceManager.hpp"
 #include <SFML/Graphics.hpp>
+#include "scene/Context.hpp"
+#include "scene/AScene.hpp"
+#include <memory>
 
 enum class GameState
 {
@@ -28,9 +31,14 @@ class GameWindow
     private:
         sf::RenderWindow _window;
         bool _isRunning;
+        Context _context;
         GameBoardRenderer _boardRenderer;
         RessourceManager _ressourceManager;
         sf::Sprite* _backgroundSprite;
+        std::unique_ptr<AScene> _currentScene;
+        sf::Clock _clock;
+        sf::Time _deltaTime;
+        bool _cleaned;
     };
 
 #endif

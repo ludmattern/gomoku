@@ -20,7 +20,7 @@ class GameBoardRenderer
         void cleanup(void);
         void render(sf::RenderWindow& window);
         void updateCell(int x, int y, CellState state);
-
+        
         void setTextures(sf::Texture& boardTexture, sf::Texture& pawn1Texture, sf::Texture& pawn2Texture);
 
         // Conversion isométrique centrée

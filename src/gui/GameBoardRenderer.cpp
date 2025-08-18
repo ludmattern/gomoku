@@ -140,7 +140,7 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
                 _pawn1Sprite->setScale(sf::Vector2f(scale, scale));
                 window.draw(*_pawn1Sprite);
                 continue;
-            }
+                }
 
             if (_board[i][j] == CellState::Player2)
             {
@@ -151,7 +151,7 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
                 _pawn2Sprite->setScale(sf::Vector2f(scale, scale));
                 window.draw(*_pawn2Sprite);
             }
+            }
         }
     }
-}
 

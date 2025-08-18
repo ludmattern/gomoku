@@ -1,7 +1,7 @@
 # Makefile pour le projet Gomoku
 # Compilateur et flags
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -O2
+CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -O2
 
 # Détection du système d'exploitation
 UNAME_S := $(shell uname -s)
