@@ -14,9 +14,14 @@ bool RessourceManager::init(void)
 {
     std::cout << "Initializing RessourceManager" << std::endl;
 
-    if (!loadTexture("background", "assets/background.png"))
+    if (!loadTexture("background", "assets/Title with bg.png"))
     {
         std::cerr << "Failed to load background texture" << std::endl;
+        return false;
+    }
+    if (!loadTexture("gameBackground", "assets/background.png"))
+    {
+        std::cerr << "Failed to load game background texture" << std::endl;
         return false;
     }
     if (!loadTexture("board", TEXTURE_PATH + "board.png"))
@@ -34,6 +39,22 @@ bool RessourceManager::init(void)
         std::cerr << "Failed to load pawn2 texture" << std::endl;
         return false;
     }
+    if (!loadTexture("play_button", "assets/ui/play_button.png"))
+    {
+        std::cerr << "Failed to load play_button texture" << std::endl;
+        return false;
+    }
+    if (!loadTexture("settings_button", "assets/ui/settings_button.png"))
+    {
+        std::cerr << "Failed to load settings_button texture" << std::endl;
+        return false;
+    }
+    if (!loadTexture("exit_button", "assets/ui/exit_button.png"))
+    {
+        std::cerr << "Failed to load exit_button texture" << std::endl;
+        return false;
+    }
+
     std::cout << "RessourceManager initialized" << std::endl;
     return true;
 }

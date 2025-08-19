@@ -39,6 +39,11 @@ class GameWindow
         sf::Clock _clock;
         sf::Time _deltaTime;
         bool _cleaned;
-    };
+
+        // Animation d’intro (shader radial)
+        sf::Shader _radialMask;
+        bool _introActive = false;
+        sf::Clock _introClock;
+};
 
 #endif

@@ -5,24 +5,33 @@
 MainMenu::MainMenu(Context& context) : AScene(context)
 {
 	// Bouton "Jouer"
-	_playButton.setText("Play");
-	_playButton.setPosition({200, 550});
+	_playButton.setPosition({86, 539});
 	_playButton.setSize({300, 70});
-	_playButton.setCornerRadius(0.f);
+	if (_context.ressourceManager && _context.ressourceManager->hasTexture("play_button"))
+	{
+		_playButton.setTexture(&_context.ressourceManager->getTexture("play_button"));
+	}
+	_playButton.setScale(0.775f);
 	_playButton.setCallback([this]() { onPlayClicked(); });
 
 	// Bouton "Paramètres"
-	_settingsButton.setText("Settings");
-	_settingsButton.setPosition({600, 550});
+	_settingsButton.setPosition({537, 539});
 	_settingsButton.setSize({300, 70});
-	_settingsButton.setCornerRadius(0.f);
+	if (_context.ressourceManager && _context.ressourceManager->hasTexture("settings_button"))
+	{
+		_settingsButton.setTexture(&_context.ressourceManager->getTexture("settings_button"));
+	}
+	_settingsButton.setScale(0.775f);
 	_settingsButton.setCallback([this]() { onSettingsClicked(); });
 
 	// Bouton "Quitter"
-	_exitButton.setText("Exit");
-	_exitButton.setPosition({600, 700});
+	_exitButton.setPosition({995, 539});
 	_exitButton.setSize({300, 70});
-	_exitButton.setCornerRadius(0.f);
+	if (_context.ressourceManager && _context.ressourceManager->hasTexture("exit_button"))
+	{
+		_exitButton.setTexture(&_context.ressourceManager->getTexture("exit_button"));
+	}
+	_exitButton.setScale(0.775f);
 	_exitButton.setCallback([this]() { onExitClicked(); });
 }
 

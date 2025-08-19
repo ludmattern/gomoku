@@ -14,7 +14,6 @@ GameWindow::GameWindow(void) : _ressourceManager("default"), _backgroundSprite(n
 
 GameWindow::~GameWindow(void)
 {
-	// Ne rien faire ici; cleanup() est déjà appelé depuis run()
 }
 
 bool GameWindow::isRunning(void)
@@ -42,7 +41,13 @@ void GameWindow::init(void)
 	
 	// Background
 	_backgroundSprite = new sf::Sprite(_ressourceManager.getTexture("background"));
-	
+	// Échelle pour couvrir toute la fenêtre
+	_backgroundSprite->setScale(sf::Vector2f(0.775f, 0.775f));
+
+	// Shader radial
+	_introActive = _radialMask.loadFromFile("assets/shaders/radial_mask.frag", sf::Shader::Type::Fragment);
+	_introClock.restart();
+
 	_boardRenderer.setTextures(
 		_ressourceManager.getTexture("board"),
 		_ressourceManager.getTexture("pawn1"),
@@ -74,6 +79,10 @@ void GameWindow::handleEvents(void)
 				return;
 			}
 		}
+
+		// Tant que l'intro est active, on ignore les entrées de la scène
+		if (_introActive)
+			continue;
 
 		if (_currentScene)
 		{
@@ -164,16 +173,39 @@ void GameWindow::render(void)
 	
 	if (_backgroundSprite)
 	{
-		_window.draw(*_backgroundSprite);
+		if (_introActive)
+		{
+			const float delay = 1.0f;
+			const float duration = 1.2f;
+			const auto win = _window.getSize();
+			float elapsed = _introClock.getElapsedTime().asSeconds();
+			if (elapsed >= delay)
+			{
+				float t = std::min((elapsed - delay) / duration, 1.f);
+				t = t * t * (3.f - 2.f * t);
+				float Rmax = std::hypot(win.x * 0.5f, win.y * 0.5f);
+				_radialMask.setUniform("uCenter", sf::Glsl::Vec2(win.x * 0.5f, win.y * 0.5f));
+				_radialMask.setUniform("uRadius", t * Rmax);
+				_window.draw(*_backgroundSprite, &_radialMask);
+				if (t >= 1.f) _introActive = false;
+			}
+		}
+		else
+		{
+			_window.draw(*_backgroundSprite);
+		}
 	}
 	
-	if (_context.inGame)
+	if (!_introActive)
 	{
-		renderBoard();
-	}
-	else if (_currentScene)
-	{
-		_currentScene->render(_window);
+		if (_context.inGame)
+		{
+			renderBoard();
+		}
+		else if (_currentScene)
+		{
+			_currentScene->render(_window);
+		}
 	}
 	
 	_window.display();

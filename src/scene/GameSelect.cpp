@@ -1,20 +1,7 @@
 #include "scene/GameSelect.hpp"
 
 GameSelectScene::GameSelectScene(Context& ctx) : AScene(ctx) {
-    // Configuration du bouton "Joueur vs Joueur"
-    _playerVsPlayerButton.setText("Joueur vs Joueur");
-    _playerVsPlayerButton.setPosition({400, 250});
-    _playerVsPlayerButton.setCallback([this]() { onPlayerVsPlayerClicked(); });
 
-    // Configuration du bouton "Joueur vs Bot"
-    _playerVsBotButton.setText("Joueur vs Bot");
-    _playerVsBotButton.setPosition({400, 350});
-    _playerVsBotButton.setCallback([this]() { onPlayerVsBotClicked(); });
-
-    // Configuration du bouton "Retour"
-    _backButton.setText("Retour");
-    _backButton.setPosition({400, 450});
-    _backButton.setCallback([this]() { onBackClicked(); });
 }
 
 void GameSelectScene::onEnter(void) {
