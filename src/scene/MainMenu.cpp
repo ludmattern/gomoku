@@ -39,14 +39,6 @@ MainMenu::~MainMenu(void)
 {
 }
 
-void MainMenu::onEnter(void)
-{
-}
-
-void MainMenu::onExit(void)
-{
-}
-
 bool MainMenu::handleInput(sf::Event& event)
 {
 	return (_context.window && _playButton.handleInput(event, *_context.window))
@@ -70,7 +62,8 @@ void MainMenu::render(sf::RenderTarget& target) const
 
 void MainMenu::onPlayClicked(void)
 {
-	_context.inGame = true;
+	_context.inGame = false;
+	_context.showGameSelectMenu = true;
 }
 
 void MainMenu::onSettingsClicked(void)

@@ -1,18 +1,14 @@
 #ifndef GAME_WINDOW_HPP
 # define GAME_WINDOW_HPP
 
-#include "GameBoardRenderer.hpp"
 #include "core/RessourceManager.hpp"
 #include <SFML/Graphics.hpp>
 #include "scene/Context.hpp"
 #include "scene/AScene.hpp"
 #include <memory>
+#include "GameBoardRenderer.hpp"
 
-enum class GameState
-{
-    MainMenu,
-    Game
-};
+class GameBoardRenderer;
 
 class GameWindow
 {
@@ -26,14 +22,13 @@ class GameWindow
         void handleEvents(void);
         void render(void);
         void cleanup(void);
-        void renderBoard(void);
 
     private:
         sf::RenderWindow _window;
         bool _isRunning;
         Context _context;
-        GameBoardRenderer _boardRenderer;
         RessourceManager _ressourceManager;
+        GameBoardRenderer _boardRenderer;
         sf::Sprite* _backgroundSprite;
         std::unique_ptr<AScene> _currentScene;
         sf::Clock _clock;

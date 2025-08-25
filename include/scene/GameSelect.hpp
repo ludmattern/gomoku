@@ -7,8 +7,6 @@ public:
     explicit GameSelectScene(Context& ctx);
     ~GameSelectScene() override = default;
 
-    void onEnter(void) override;
-    void onExit(void) override;
     void update(sf::Time& deltaTime) override;
     void render(sf::RenderTarget& target) const override;
     bool handleInput(sf::Event& event) override;

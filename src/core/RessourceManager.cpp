@@ -54,6 +54,26 @@ bool RessourceManager::init(void)
         std::cerr << "Failed to load exit_button texture" << std::endl;
         return false;
     }
+    if (!loadTexture("vs_player_button", "assets/ui/vs_player_button.png"))
+    {
+        std::cerr << "Failed to load vs_player_button texture" << std::endl;
+        return false;
+    }
+    if (!loadTexture("vs_ai_button", "assets/ui/vs_ai_button.png"))
+    {
+        std::cerr << "Failed to load vs_ai_button texture" << std::endl;
+        return false;
+    }
+    if (!loadTexture("back_button", "assets/ui/back_button.png"))
+    {
+        std::cerr << "Failed to load back_button texture" << std::endl;
+        return false;
+    }
+    if (!loadTexture("empty_background", "assets/background.png"))
+    {
+        std::cerr << "Failed to load empty_background texture" << std::endl;
+        return false;
+    }
 
     std::cout << "RessourceManager initialized" << std::endl;
     return true;

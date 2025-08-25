@@ -1,15 +1,28 @@
 #include "scene/GameSelect.hpp"
+#include "scene/MainMenu.hpp"
 
-GameSelectScene::GameSelectScene(Context& ctx) : AScene(ctx) {
+GameSelectScene::GameSelectScene(Context& ctx) : AScene(ctx) 
+{
+    _playerVsPlayerButton.setPosition({86, 539});
+    _playerVsPlayerButton.setSize({300, 70});
+    if (_context.ressourceManager && _context.ressourceManager->hasTexture("vs_player_button"))
+        _playerVsPlayerButton.setTexture(&_context.ressourceManager->getTexture("vs_player_button"));
+    _playerVsPlayerButton.setScale(0.775f);
+    _playerVsPlayerButton.setCallback([this]() { onPlayerVsPlayerClicked(); });
 
-}
+    _playerVsBotButton.setPosition({537, 539});
+    _playerVsBotButton.setSize({300, 70});
+    if (_context.ressourceManager && _context.ressourceManager->hasTexture("vs_ai_button"))
+        _playerVsBotButton.setTexture(&_context.ressourceManager->getTexture("vs_ai_button"));
+    _playerVsBotButton.setScale(0.775f);
+    _playerVsBotButton.setCallback([this]() { onPlayerVsBotClicked(); });
 
-void GameSelectScene::onEnter(void) {
-    // Initialisation de la scène
-}
-
-void GameSelectScene::onExit(void) {
-    // Nettoyage si nécessaire
+    _backButton.setPosition({995, 539});
+    _backButton.setSize({300, 70});
+    if (_context.ressourceManager && _context.ressourceManager->hasTexture("back_button"))
+        _backButton.setTexture(&_context.ressourceManager->getTexture("back_button"));
+    _backButton.setScale(0.775f);
+    _backButton.setCallback([this]() { onBackClicked(); });
 }
 
 void GameSelectScene::update(sf::Time& deltaTime) {
@@ -31,14 +44,21 @@ bool GameSelectScene::handleInput(sf::Event& event) {
     return false;
 }
 
-void GameSelectScene::onPlayerVsPlayerClicked() {
-    // TODO: lancer le jeu (SceneManager non intégré pour l'instant)
+void GameSelectScene::onPlayerVsPlayerClicked() 
+{
+    _context.vsAi = false;
+    _context.inGame = true;
 }
 
-void GameSelectScene::onPlayerVsBotClicked() {
-    // TODO: lancer le jeu (SceneManager non intégré pour l'instant)
+void GameSelectScene::onPlayerVsBotClicked() 
+{
+    _context.vsAi = true;
+    _context.inGame = true;
 }
 
-void GameSelectScene::onBackClicked() {
-    // TODO: retour au menu principal (SceneManager non intégré pour l'instant)
+void GameSelectScene::onBackClicked() 
+{
+    _context.showGameSelectMenu = false;
+    _context.inGame = false;
+    _context.showMainMenu = true;
 }

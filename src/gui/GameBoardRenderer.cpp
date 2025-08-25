@@ -62,6 +62,7 @@ void GameBoardRenderer::setTextures(sf::Texture& boardTexture, sf::Texture& pawn
     _boardSprite = new sf::Sprite(boardTexture);
     _pawn1Sprite = new sf::Sprite(pawn1Texture);
     _pawn2Sprite = new sf::Sprite(pawn2Texture);
+    
 
     if (!_boardSprite || !_pawn1Sprite || !_pawn2Sprite)
     {
@@ -81,19 +82,6 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
     const float tileW = std::min(size.x * 0.8f / 18.f, size.y * 0.8f * 2.f / 18.f);
     const float tileH = tileW * 0.5f;
 
-    // Grille: lignes i = const
-    for (int i = 0; i < N_INTERSECTIONS; ++i)
-    {
-        sf::Vector2f a = isoToScreen(i, 0,  tileW, tileH, centerX, centerY);
-        sf::Vector2f b = isoToScreen(i, 18, tileW, tileH, centerX, centerY);
-        const float dx = b.x - a.x, dy = b.y - a.y;
-        const float len = std::sqrt(dx*dx + dy*dy);
-        sf::RectangleShape line(sf::Vector2f(len, 2.f));
-        line.setPosition(a);
-        line.setRotation(sf::radians(std::atan2(dy, dx)));
-        line.setFillColor(sf::Color::White);
-        window.draw(line);
-    }
 
     if (_boardSprite)
     {
@@ -106,20 +94,6 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
         _boardSprite->setScale(sf::Vector2f(scale, scale));
         window.draw(*_boardSprite);
     }
-
-    // // Grille: lignes j = const
-    // for (int j = 0; j < N_INTERSECTIONS; ++j)
-    // {
-    //     sf::Vector2f a = isoToScreen(0,  j, tileW, tileH, centerX, centerY);
-    //     sf::Vector2f b = isoToScreen(18, j, tileW, tileH, centerX, centerY);
-    //     const float dx = b.x - a.x, dy = b.y - a.y;
-    //     const float len = std::sqrt(dx*dx + dy*dy);
-    //     sf::RectangleShape line(sf::Vector2f(len, 2.f));
-    //     line.setPosition(a);
-    //     line.setRotation(sf::radians(std::atan2(dy, dx)));
-    //     line.setFillColor(sf::Color::White);
-    //     window.draw(line);
-    // }
 
     // Pierres aux intersections
     for (int i = 0; i < N_INTERSECTIONS; ++i)

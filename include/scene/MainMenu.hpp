@@ -9,8 +9,6 @@ class MainMenu : public AScene
         explicit MainMenu(Context& context);
         ~MainMenu(void);
 
-        void onEnter(void) override;
-        void onExit(void) override;
         bool handleInput(sf::Event& event) override;
         void update(sf::Time& deltaTime) override;
         void render(sf::RenderTarget& target) const override;
