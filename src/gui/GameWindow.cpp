@@ -24,8 +24,8 @@ bool GameWindow::isRunning(void)
 
 void GameWindow::init(void)
 {	
-	_window = sf::RenderWindow(
-		sf::VideoMode({1920, 1080}),
+	_window.create(
+		sf::VideoMode(1920, 1080),
 		"Gomoku"
 	);
 	_window.setFramerateLimit(60);
@@ -43,7 +43,7 @@ void GameWindow::init(void)
 	// Background
 	_backgroundSprite = new sf::Sprite(_ressourceManager.getTexture("background"));
 	// Échelle pour couvrir toute la fenêtre
-	_backgroundSprite->setScale(sf::Vector2f(0.775f, 0.775f));
+	_backgroundSprite->setScale(sf::Vector2f(1.0f, 1.0f));
 
 	// Shader radial
 	_introActive = _radialMask.loadFromFile("assets/shaders/radial_mask.frag", sf::Shader::Type::Fragment);
@@ -58,17 +58,17 @@ void GameWindow::init(void)
 
 void GameWindow::handleEvents(void)
 {
-	while (auto event = _window.pollEvent())
+	sf::Event event;
+	while (_window.pollEvent(event))
 	{
-		if (event->is<sf::Event::Closed>())
+		if (event.type == sf::Event::Closed)
 		{
 			_context.shouldQuit = true;
 			return;
 		}
-		if (event->is<sf::Event::KeyPressed>())
+		if (event.type == sf::Event::KeyPressed)
 		{
-			auto key = event->getIf<sf::Event::KeyPressed>()->code;
-			if (key == sf::Keyboard::Key::Escape)
+			if (event.key.code == sf::Keyboard::Escape)
 			{
 				_context.shouldQuit = true;
 				return;
@@ -81,8 +81,7 @@ void GameWindow::handleEvents(void)
 
 		if (_currentScene)
 		{
-			sf::Event evtCopy = *event;
-			_currentScene->handleInput(evtCopy);
+			_currentScene->handleInput(event);
 			if (_context.shouldQuit)
 				return;
 		}

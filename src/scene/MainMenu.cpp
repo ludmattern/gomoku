@@ -5,33 +5,33 @@
 MainMenu::MainMenu(Context& context) : AScene(context)
 {
 	// Bouton "Jouer"
-	_playButton.setPosition({86, 539});
+	_playButton.setPosition({111, 696});
 	_playButton.setSize({300, 70});
 	if (_context.ressourceManager && _context.ressourceManager->hasTexture("play_button"))
 	{
 		_playButton.setTexture(&_context.ressourceManager->getTexture("play_button"));
 	}
-	_playButton.setScale(0.775f);
+	_playButton.setScale(1.0f);
 	_playButton.setCallback([this]() { onPlayClicked(); });
 
 	// Bouton "Paramètres"
-	_settingsButton.setPosition({537, 539});
+	_settingsButton.setPosition({693, 696});
 	_settingsButton.setSize({300, 70});
 	if (_context.ressourceManager && _context.ressourceManager->hasTexture("settings_button"))
 	{
 		_settingsButton.setTexture(&_context.ressourceManager->getTexture("settings_button"));
 	}
-	_settingsButton.setScale(0.775f);
+	_settingsButton.setScale(1.0f);
 	_settingsButton.setCallback([this]() { onSettingsClicked(); });
 
 	// Bouton "Quitter"
-	_exitButton.setPosition({995, 539});
+	_exitButton.setPosition({1284, 695.5});
 	_exitButton.setSize({300, 70});
 	if (_context.ressourceManager && _context.ressourceManager->hasTexture("exit_button"))
 	{
 		_exitButton.setTexture(&_context.ressourceManager->getTexture("exit_button"));
 	}
-	_exitButton.setScale(0.775f);
+	_exitButton.setScale(1.0f);
 	_exitButton.setCallback([this]() { onExitClicked(); });
 }
 

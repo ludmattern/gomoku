@@ -85,13 +85,8 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
 
     if (_boardSprite)
     {
-        const sf::Texture& texture = _boardSprite->getTexture();
-        float scaleX = static_cast<float>(size.x) / texture.getSize().x;
-        float scaleY = static_cast<float>(size.y) / texture.getSize().y;
-        float scale = std::min(scaleX, scaleY);
-
-        _boardSprite->setPosition(sf::Vector2f(5, 5));
-        _boardSprite->setScale(sf::Vector2f(scale, scale));
+        _boardSprite->setPosition(sf::Vector2f(7, -30));
+        _boardSprite->setScale(sf::Vector2f(1.0f, 1.0f)); // Pas de redimensionnement
         window.draw(*_boardSprite);
     }
 
@@ -108,7 +103,7 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
             if (_board[i][j] == CellState::Player1)
             {
                 float pawnSize = tileW  * 0.6f;
-                float scale = pawnSize / _pawn1Sprite->getTexture().getSize().x;
+                float scale = pawnSize / _pawn1Sprite->getTexture()->getSize().x;
 
                 _pawn1Sprite->setPosition(sf::Vector2f(p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5));
                 _pawn1Sprite->setScale(sf::Vector2f(scale, scale));
@@ -119,7 +114,7 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
             if (_board[i][j] == CellState::Player2)
             {
                 float pawnSize = tileW  * 0.6f;
-                float scale = pawnSize / _pawn2Sprite->getTexture().getSize().x;
+                float scale = pawnSize / _pawn2Sprite->getTexture()->getSize().x;
 
                 _pawn2Sprite->setPosition(sf::Vector2f(p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5));
                 _pawn2Sprite->setScale(sf::Vector2f(scale, scale));

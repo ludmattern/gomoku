@@ -7,11 +7,11 @@ GameScene::GameScene(Context& context, bool vsAi)
 	: AScene(context), _vsAi(vsAi)
 {
 	// Initialisation du bouton Back
-	_backButton.setPosition(_vsAi ? sf::Vector2f{86, 480} : sf::Vector2f{86, 539});
+	_backButton.setPosition({100, 820});
 	_backButton.setSize({300, 70});
 	if (_context.ressourceManager && _context.ressourceManager->hasTexture("back_button"))
 		_backButton.setTexture(&_context.ressourceManager->getTexture("back_button"));
-	_backButton.setScale(0.775f);
+	_backButton.setScale(1.0f);
 	_backButton.setCallback([this]() { onBackClicked(); });
 
 	// Initialisation du renderer de plateau
@@ -35,11 +35,10 @@ bool GameScene::handleInput(sf::Event& event)
 	if (_context.window && _backButton.handleInput(event, *_context.window)) return true;
 
 	// Placement des pions sur clic souris
-	if (_context.window && event.is<sf::Event::MouseButtonPressed>())
+	if (_context.window && event.type == sf::Event::MouseButtonPressed)
 	{
-		auto pressed = event.getIf<sf::Event::MouseButtonPressed>();
-		auto btn = pressed->button;
-		if (btn == sf::Mouse::Button::Left || btn == sf::Mouse::Button::Right)
+		auto btn = event.mouseButton.button;
+		if (btn == sf::Mouse::Left || btn == sf::Mouse::Right)
 		{
 			const auto size = _context.window->getSize();
 			const float centerX = static_cast<float>(size.x) * 0.5f;
@@ -51,7 +50,7 @@ bool GameScene::handleInput(sf::Event& event)
 			const float tileW = std::min(size.x * 0.8f / 18.f, size.y * 0.8f * 2.f / 18.f);
 			const float tileH = tileW * 0.5f;
 
-			sf::Vector2f mp = _context.window->mapPixelToCoords({pressed->position.x, pressed->position.y});
+			sf::Vector2f mp = _context.window->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
 			const float X = mp.x - centerX;
 			const float Y = mp.y - centerY;
 
@@ -75,9 +74,9 @@ bool GameScene::handleInput(sf::Event& event)
 
 			if ((dx * dx + dy * dy) <= (maxDist * maxDist))
 			{
-				if (btn == sf::Mouse::Button::Left)
+				if (btn == sf::Mouse::Left)
 					const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player1);
-				else if (btn == sf::Mouse::Button::Right)
+				else if (btn == sf::Mouse::Right)
 					const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player2);
 			}
 		}
@@ -97,7 +96,7 @@ void GameScene::render(sf::RenderTarget& target) const
 	if (_context.ressourceManager && _context.ressourceManager->hasTexture("gameBackground"))
 	{
 		sf::Sprite bg(_context.ressourceManager->getTexture("gameBackground"));
-		bg.setScale(sf::Vector2f(0.775f, 0.775f));
+		bg.setScale(sf::Vector2f(1.0f, 1.0f));
 		target.draw(bg);
 	}
 	// Plateau (cible est la fenêtre; cast suffisant ici)

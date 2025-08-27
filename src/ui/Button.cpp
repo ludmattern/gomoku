@@ -98,9 +98,8 @@ void Button::render(sf::RenderTarget& target) const
 
 bool Button::handleInput(const sf::Event& event, const sf::RenderWindow& window)
 {
-	if (event.is<sf::Event::MouseMoved>()) {
-		auto posEvt = event.getIf<sf::Event::MouseMoved>();
-		sf::Vector2f mousePos = window.mapPixelToCoords({posEvt->position.x, posEvt->position.y});
+	if (event.type == sf::Event::MouseMoved) {
+		sf::Vector2f mousePos = window.mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
 		_isHovered = _shape.getGlobalBounds().contains(mousePos);
 		if (_sprite && _texture) {
 			_sprite->setColor(_isHovered ? sf::Color(230,230,230) : sf::Color(255,255,255));
@@ -109,21 +108,19 @@ bool Button::handleInput(const sf::Event& event, const sf::RenderWindow& window)
 		}
 	}
 
-	if (event.is<sf::Event::MouseButtonPressed>()) {
-		auto pressed = event.getIf<sf::Event::MouseButtonPressed>();
-		if (pressed->button == sf::Mouse::Button::Left) {
-			sf::Vector2f mousePos = window.mapPixelToCoords({pressed->position.x, pressed->position.y});
+	if (event.type == sf::Event::MouseButtonPressed) {
+		if (event.mouseButton.button == sf::Mouse::Left) {
+			sf::Vector2f mousePos = window.mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
 			if (_shape.getGlobalBounds().contains(mousePos)) {
 				_isPressed = true;
 			}
 		}
 	}
 
-	if (event.is<sf::Event::MouseButtonReleased>()) {
-		auto released = event.getIf<sf::Event::MouseButtonReleased>();
-		if (released->button == sf::Mouse::Button::Left) {
+	if (event.type == sf::Event::MouseButtonReleased) {
+		if (event.mouseButton.button == sf::Mouse::Left) {
 			if (_isPressed) {
-				sf::Vector2f mousePos = window.mapPixelToCoords({released->position.x, released->position.y});
+				sf::Vector2f mousePos = window.mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
 				if (_shape.getGlobalBounds().contains(mousePos)) {
 					if (_callback) {
 						_callback();
