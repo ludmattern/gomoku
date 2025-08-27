@@ -34,6 +34,8 @@ bool GameScene::handleInput(sf::Event& event)
 {
 	if (_context.window && _backButton.handleInput(event, *_context.window)) return true;
 
+	// Prévisualisation temporairement désactivée pour debug
+
 	// Placement des pions sur clic souris
 	if (_context.window && event.type == sf::Event::MouseButtonPressed)
 	{
@@ -70,7 +72,7 @@ bool GameScene::handleInput(sf::Event& event)
 			const float snappedY = centerY + (ui + vj) * (tileH * 0.5f);
 			const float dx = snappedX - mp.x;
 			const float dy = snappedY - mp.y;
-			const float maxDist = std::min(tileW, tileH) * 0.35f;
+			const float maxDist = std::min(tileW, tileH) * 0.9f; // Zone cliquable étendue (était 0.35f)
 
 			if ((dx * dx + dy * dy) <= (maxDist * maxDist))
 			{

@@ -26,7 +26,8 @@ void GameWindow::init(void)
 {	
 	_window.create(
 		sf::VideoMode(1920, 1080),
-		"Gomoku"
+		"Gomoku",
+		sf::Style::Close | sf::Style::Titlebar
 	);
 	_window.setFramerateLimit(60);
 
