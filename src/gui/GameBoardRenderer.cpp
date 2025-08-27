@@ -85,7 +85,7 @@ void GameBoardRenderer::render(sf::RenderWindow& window)
 
     if (_boardSprite)
     {
-        _boardSprite->setPosition(sf::Vector2f(7, -30));
+        _boardSprite->setPosition(sf::Vector2f(6, 5));
         _boardSprite->setScale(sf::Vector2f(1.0f, 1.0f)); // Pas de redimensionnement
         window.draw(*_boardSprite);
     }
