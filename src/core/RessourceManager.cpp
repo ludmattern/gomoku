@@ -29,12 +29,12 @@ bool RessourceManager::init(void)
         std::cerr << "Failed to load board texture" << std::endl;
         return false;
     }
-    if (!loadTexture("pawn1", TEXTURE_PATH + "pawn1.png"))
+    if (!loadTexture("pawn1", TEXTURE_PATH + "whitePawn.png"))
     {
         std::cerr << "Failed to load pawn1 texture" << std::endl;
         return false;
     }
-    if (!loadTexture("pawn2", TEXTURE_PATH + "pawn2.png"))
+    if (!loadTexture("pawn2", TEXTURE_PATH + "blackPawn.png"))
     {
         std::cerr << "Failed to load pawn2 texture" << std::endl;
         return false;
