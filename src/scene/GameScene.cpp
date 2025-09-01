@@ -3,8 +3,9 @@
 #include <cmath>
 #include <algorithm>
 
+
 GameScene::GameScene(Context &context, bool vsAi)
-	: AScene(context), _vsAi(vsAi)
+	: AScene(context), _vsAi(vsAi), _gameSession(gomoku::GameSession())
 {
 	// Initialisation du bouton Back
 	_backButton.setPosition({100, 820});
@@ -23,6 +24,8 @@ GameScene::GameScene(Context &context, bool vsAi)
 			_context.ressourceManager->getTexture("pawn1"),
 			_context.ressourceManager->getTexture("pawn2"));
 	}
+
+	_rules = gomoku::RuleSet();
 }
 
 GameScene::~GameScene(void)
@@ -84,17 +87,26 @@ bool GameScene::handleInput(sf::Event &event)
 			// }
 			if ((dx * dx + dy * dy) <= (maxDist * maxDist))
 			{
-				if (btn == sf::Mouse::Left)
+				if (btn == sf::Mouse::Left) 
+				{
 					/* check si c'est au tour de l'humain sinon skip*/
-					// auto r = playHuman(i, j)
-					// if r.ok
-					const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(i, j, CellState::Player1);
-				// si context.vsAi est true
-				// auto r = playAi(ms)
-				// if r.ok
-				// updateCell(i, j, CellState::Player2)
-				else if (btn == sf::Mouse::Right)
-					const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(i, j, CellState::Player2);
+					auto result = _gameSession.playHuman(gomoku::Pos{(uint8_t)i, (uint8_t)j});
+					if (result.ok)
+					{
+						const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(i, j, CellState::Player1);
+						
+						if (_vsAi)
+						{
+							auto aiResult = _gameSession.playAI(450);
+							if (aiResult.ok && aiResult.mv)
+							{
+								auto x = aiResult.mv->pos.x;
+								auto y = aiResult.mv->pos.y;
+								const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(x, y, CellState::Player2);
+							}
+						}
+					}
+				}
 			}
 		}
 		return true;
