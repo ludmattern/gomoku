@@ -3,7 +3,7 @@
 #include <cmath>
 #include <algorithm>
 
-GameScene::GameScene(Context& context, bool vsAi)
+GameScene::GameScene(Context &context, bool vsAi)
 	: AScene(context), _vsAi(vsAi)
 {
 	// Initialisation du bouton Back
@@ -12,7 +12,8 @@ GameScene::GameScene(Context& context, bool vsAi)
 	if (_context.ressourceManager && _context.ressourceManager->hasTexture("back_button"))
 		_backButton.setTexture(&_context.ressourceManager->getTexture("back_button"));
 	_backButton.setScale(1.0f);
-	_backButton.setCallback([this]() { onBackClicked(); });
+	_backButton.setCallback([this]()
+							{ onBackClicked(); });
 
 	// Initialisation du renderer de plateau
 	if (_context.ressourceManager)
@@ -20,8 +21,7 @@ GameScene::GameScene(Context& context, bool vsAi)
 		_boardRenderer.setTextures(
 			_context.ressourceManager->getTexture("board"),
 			_context.ressourceManager->getTexture("pawn1"),
-			_context.ressourceManager->getTexture("pawn2")
-		);
+			_context.ressourceManager->getTexture("pawn2"));
 	}
 }
 
@@ -30,9 +30,10 @@ GameScene::~GameScene(void)
 	_boardRenderer.cleanup();
 }
 
-bool GameScene::handleInput(sf::Event& event)
+bool GameScene::handleInput(sf::Event &event)
 {
-	if (_context.window && _backButton.handleInput(event, *_context.window)) return true;
+	if (_context.window && _backButton.handleInput(event, *_context.window))
+		return true;
 
 	// Prévisualisation temporairement désactivée pour debug
 
@@ -74,12 +75,26 @@ bool GameScene::handleInput(sf::Event& event)
 			const float dy = snappedY - mp.y;
 			const float maxDist = std::min(tileW, tileH) * 0.9f; // Zone cliquable étendue (était 0.35f)
 
+			// if ((dx * dx + dy * dy) <= (maxDist * maxDist))
+			// {
+			// 	if (btn == sf::Mouse::Left)
+			// 		const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player1);
+			// 	else if (btn == sf::Mouse::Right)
+			// 		const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player2);
+			// }
 			if ((dx * dx + dy * dy) <= (maxDist * maxDist))
 			{
 				if (btn == sf::Mouse::Left)
-					const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player1);
+					/* check si c'est au tour de l'humain sinon skip*/
+					// auto r = playHuman(i, j)
+					// if r.ok
+					const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(i, j, CellState::Player1);
+				// si context.vsAi est true
+				// auto r = playAi(ms)
+				// if r.ok
+				// updateCell(i, j, CellState::Player2)
 				else if (btn == sf::Mouse::Right)
-					const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player2);
+					const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(i, j, CellState::Player2);
 			}
 		}
 		return true;
@@ -87,12 +102,12 @@ bool GameScene::handleInput(sf::Event& event)
 	return false;
 }
 
-void GameScene::update(sf::Time& deltaTime)
+void GameScene::update(sf::Time &deltaTime)
 {
 	_backButton.update(deltaTime);
 }
 
-void GameScene::render(sf::RenderTarget& target) const
+void GameScene::render(sf::RenderTarget &target) const
 {
 	// Fond de jeu
 	if (_context.ressourceManager && _context.ressourceManager->hasTexture("gameBackground"))
@@ -102,7 +117,7 @@ void GameScene::render(sf::RenderTarget& target) const
 		target.draw(bg);
 	}
 	// Plateau (cible est la fenêtre; cast suffisant ici)
-	const_cast<GameBoardRenderer&>(_boardRenderer).render(static_cast<sf::RenderWindow&>(target));
+	const_cast<GameBoardRenderer &>(_boardRenderer).render(static_cast<sf::RenderWindow &>(target));
 	// UI
 	_backButton.render(target);
 }
@@ -111,4 +126,4 @@ void GameScene::onBackClicked(void)
 {
 	_context.inGame = false;
 	_context.showMainMenu = true;
-} 
+}
