@@ -35,6 +35,10 @@ private:
 	bool _pendingAi = false;
 	int _aiBudgetMs = 450;
 	mutable bool _framePresented = false; // set true by render() once a frame was displayed
+	bool _aiThinking = false;			  // guards input while AI is running
+	// Input guard: ignore board-placement clicks while AI is thinking and for a short time after
+	mutable sf::Clock _inputClock;
+	sf::Time _blockBoardClicksUntil{}; // default zero
 	// Illegal move message
 	std::string _illegalMsg;
 	mutable sf::Clock _illegalClock;

@@ -45,7 +45,7 @@ all: $(TARGET)
 $(TARGET): $(OBJ_FILES)
 	@echo "🔗 Linking $(TARGET)..."
 	@mkdir -p $(dir $@)
-	$(CXX) $(OBJ_FILES) $(SFML_LIBS) $(SFML_RPATH) -o $@
+	$(CXX) $(OBJ_FILES) $(SFML_LIBS) $(SFML_RPATH) $(LDFLAGS) -o $@
 	@echo "✅ $(TARGET) créé avec succès !"
 
 # Règle pour compiler les objets

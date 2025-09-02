@@ -76,6 +76,11 @@ bool GameScene::handleInput(sf::Event &event)
 		auto btn = event.mouseButton.button;
 		if (btn == sf::Mouse::Left || btn == sf::Mouse::Right)
 		{
+			// Allow UI clicks, but ignore board placement while AI is thinking or during cooldown
+			if (_aiThinking || _pendingAi || (_blockBoardClicksUntil > sf::Time::Zero && _inputClock.getElapsedTime() < _blockBoardClicksUntil))
+			{
+				return true; // consume to avoid buffering a move
+			}
 			const auto size = _context.window->getSize();
 			const float centerX = static_cast<float>(size.x) * 0.5f;
 			const float centerY = static_cast<float>(size.y) * 0.5f;
@@ -165,12 +170,17 @@ void GameScene::update(sf::Time &deltaTime)
 	if (_pendingAi && _framePresented)
 	{
 		_pendingAi = false;
+		_aiThinking = true;
 		auto t0 = std::chrono::steady_clock::now();
 		auto aiResult = _gameSession.playAI(_aiBudgetMs);
 		auto t1 = std::chrono::steady_clock::now();
 		_lastAiMs = (int)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
 		auto snap = _gameSession.snapshot();
 		const_cast<GameBoardRenderer &>(_boardRenderer).applyBoard(*snap.view);
+		_aiThinking = false;
+		// Start short cooldown to swallow any clicks pressed during AI thinking
+		_inputClock.restart();
+		_blockBoardClicksUntil = sf::milliseconds(120);
 	}
 }
 
