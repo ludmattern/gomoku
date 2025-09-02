@@ -240,7 +240,56 @@ namespace gomoku
 				*whyNot = "Cell not empty.";
 			return false;
 		}
-		if (createsIllegalDoubleThree(m, rules))
+
+		// Must-break rule: if opponent (justPlayed) currently has a breakable 5+, the side to move
+		// must capture to break it (or win by capture). Non-breaking moves are illegal.
+		bool mustBreak = false;
+		if (rules.allowFiveOrMore && rules.capturesEnabled)
+		{
+			Player justPlayed = other(side);
+			Cell meC = cellOf(justPlayed);
+			if (hasAnyFive(meC) && isFiveBreakableNow(justPlayed, rules))
+				mustBreak = true;
+		}
+
+		bool allowDoubleThreeThisMove = false;
+		if (mustBreak)
+		{
+			// Only capturing moves can break a 5+; quickly reject otherwise
+			if (!wouldCapture(m))
+			{
+				if (whyNot)
+					*whyNot = "Must break opponent's five.";
+				return false;
+			}
+			// Simulate capture effect to ensure this move actually breaks (or wins by capture)
+			Board sim = *this;
+			// place the stone (ignore pattern illegality here since must-break allows capture exceptions)
+			sim.cells[idx(m.pos.x, m.pos.y)] = cellOf(m.by);
+			std::vector<Pos> removedTmp;
+			int gainedTmp = sim.applyCapturesAround(m.pos, cellOf(m.by), rules, removedTmp);
+			if (gainedTmp)
+			{
+				if (m.by == Player::Black)
+					sim.blackPairs += gainedTmp;
+				else
+					sim.whitePairs += gainedTmp;
+			}
+			int myPairsAfter = (m.by == Player::Black ? sim.blackPairs : sim.whitePairs);
+			Cell oppFiveColor = cellOf(other(side));
+			bool breaks = (myPairsAfter >= rules.captureWinPairs) || (!sim.hasAnyFive(oppFiveColor));
+			if (!breaks)
+			{
+				if (whyNot)
+					*whyNot = "Must break opponent's five.";
+				return false;
+			}
+			// This capture move is allowed even if it forms a double-three pattern
+			allowDoubleThreeThisMove = true;
+		}
+
+		// Double-three rule, unless allowed due to must-break capture
+		if (!allowDoubleThreeThisMove && createsIllegalDoubleThree(m, rules))
 		{
 			if (whyNot)
 				*whyNot = "Illegal double-three.";
@@ -416,45 +465,27 @@ namespace gomoku
 
 				Move mv{Pos{(uint8_t)x, (uint8_t)y}, opp};
 
-				// 1) voie normale : on laisse play() décider (captures + règles)
+				if (!base.wouldCapture(mv))
+					continue; // only capturing moves can break immediately
+
 				Board sim = base;
-				std::string why;
-				if (sim.play(mv, rules, &why))
+				// place the stone and apply captures
+				sim.cells[idx(mv.pos.x, mv.pos.y)] = cellOf(opp);
+				std::vector<Pos> removed;
+				int gained = sim.applyCapturesAround(mv.pos, cellOf(opp), rules, removed);
+				if (gained)
 				{
-					auto [bp, wp] = sim.capturedPairs();
-					int oppPairs = (opp == Player::Black ? bp : wp);
-					if (oppPairs >= rules.captureWinPairs)
-						return true; // l’adversaire gagnerait par captures
-					if (!sim.hasAnyFive(meC))
-						return true; // la ligne de 5 de justPlayed est cassée
-					continue;
+					if (opp == Player::Black)
+						sim.blackPairs += gained;
+					else
+						sim.whitePairs += gained;
 				}
 
-				// 2) fallback : refusé pour double-trois mais le coup CAPTURE -> autorisé par la règle
-				if (why == "Illegal double-three." && base.wouldCapture(mv))
-				{
-					Board sim2 = base;
-
-					// poser la pierre adverse
-					sim2.cells[idx(mv.pos.x, mv.pos.y)] = cellOf(opp);
-
-					// appliquer les captures (comme play)
-					std::vector<Pos> removed;
-					int gained = sim2.applyCapturesAround(mv.pos, cellOf(opp), rules, removed);
-					if (gained)
-					{
-						if (opp == Player::Black)
-							sim2.blackPairs += gained;
-						else
-							sim2.whitePairs += gained;
-					}
-
-					int oppPairs2 = (opp == Player::Black ? sim2.blackPairs : sim2.whitePairs);
-					if (oppPairs2 >= rules.captureWinPairs)
-						return true;
-					if (!sim2.hasAnyFive(meC))
-						return true;
-				}
+				int oppPairsAfter = (opp == Player::Black ? sim.blackPairs : sim.whitePairs);
+				if (oppPairsAfter >= rules.captureWinPairs)
+					return true; // immediate win by capture
+				if (!sim.hasAnyFive(meC))
+					return true; // line is broken by the capture
 			}
 		}
 		return false;

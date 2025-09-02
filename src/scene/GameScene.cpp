@@ -2,7 +2,7 @@
 #include "scene/MainMenu.hpp"
 #include <cmath>
 #include <algorithm>
-
+#include <chrono>
 
 GameScene::GameScene(Context &context, bool vsAi)
 	: AScene(context), _vsAi(vsAi), _gameSession(gomoku::GameSession())
@@ -26,11 +26,41 @@ GameScene::GameScene(Context &context, bool vsAi)
 	}
 
 	_rules = gomoku::RuleSet();
+
+	// Configure controllers according to mode
+	if (_vsAi)
+	{
+		// Default GameSession ctor is Black:Human, White:AI; keep as is for now
+		_gameSession.setController(gomoku::Player::Black, gomoku::Controller::Human);
+		_gameSession.setController(gomoku::Player::White, gomoku::Controller::AI);
+	}
+	else
+	{
+		_gameSession.setController(gomoku::Player::Black, gomoku::Controller::Human);
+		_gameSession.setController(gomoku::Player::White, gomoku::Controller::Human);
+	}
+
+	// Initial board sync
+	auto snap = _gameSession.snapshot();
+	const_cast<GameBoardRenderer &>(_boardRenderer).applyBoard(*snap.view);
+
+	// HUD setup (lazy font load)
+	_fontOk = _font.loadFromFile("assets/ui/DejaVuSans.ttf");
+	if (_fontOk)
+	{
+		_hudText.setFont(_font);
+		_hudText.setCharacterSize(20);
+		_hudText.setFillColor(sf::Color::White);
+		_hudText.setPosition(20.f, 20.f);
+		_msgText.setFont(_font);
+		_msgText.setCharacterSize(20);
+		_msgText.setFillColor(sf::Color(255, 80, 80));
+		_msgText.setPosition(20.f, 48.f);
+	}
 }
 
 GameScene::~GameScene(void)
 {
-	_boardRenderer.cleanup();
 }
 
 bool GameScene::handleInput(sf::Event &event)
@@ -87,22 +117,35 @@ bool GameScene::handleInput(sf::Event &event)
 			// }
 			if ((dx * dx + dy * dy) <= (maxDist * maxDist))
 			{
-				if (btn == sf::Mouse::Left) 
+				if (btn == sf::Mouse::Left)
 				{
-					/* check si c'est au tour de l'humain sinon skip*/
-					auto result = _gameSession.playHuman(gomoku::Pos{(uint8_t)i, (uint8_t)j});
-					if (result.ok)
+					// If it's human's turn, try to play
+					auto before = _gameSession.snapshot();
+					if (_gameSession.controller(before.toPlay) == gomoku::Controller::Human)
 					{
-						const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(i, j, CellState::Player1);
-						
-						if (_vsAi)
+						auto result = _gameSession.playHuman(gomoku::Pos{(uint8_t)i, (uint8_t)j});
+						if (result.ok)
 						{
-							auto aiResult = _gameSession.playAI(450);
-							if (aiResult.ok && aiResult.mv)
+							auto snap1 = _gameSession.snapshot();
+							const_cast<GameBoardRenderer &>(_boardRenderer).applyBoard(*snap1.view);
+							// Check end of game
+							if (snap1.status != gomoku::GameStatus::Ongoing)
+								return true;
+							// If vs AI and AI to play, schedule it with a one-frame delay
+							if (_vsAi && _gameSession.controller(snap1.toPlay) == gomoku::Controller::AI)
 							{
-								auto x = aiResult.mv->pos.x;
-								auto y = aiResult.mv->pos.y;
-								const_cast<GameBoardRenderer &>(_boardRenderer).updateCell(x, y, CellState::Player2);
+								_pendingAi = true;
+								_framePresented = false; // wait for next render() before starting AI
+							}
+						}
+						else
+						{
+							// Show reason why illegal
+							_illegalMsg = result.why;
+							if (_fontOk)
+							{
+								_msgText.setString(_illegalMsg);
+								_illegalClock.restart();
 							}
 						}
 					}
@@ -117,6 +160,18 @@ bool GameScene::handleInput(sf::Event &event)
 void GameScene::update(sf::Time &deltaTime)
 {
 	_backButton.update(deltaTime);
+
+	// Run pending AI move only after at least one frame has been presented
+	if (_pendingAi && _framePresented)
+	{
+		_pendingAi = false;
+		auto t0 = std::chrono::steady_clock::now();
+		auto aiResult = _gameSession.playAI(_aiBudgetMs);
+		auto t1 = std::chrono::steady_clock::now();
+		_lastAiMs = (int)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+		auto snap = _gameSession.snapshot();
+		const_cast<GameBoardRenderer &>(_boardRenderer).applyBoard(*snap.view);
+	}
 }
 
 void GameScene::render(sf::RenderTarget &target) const
@@ -132,6 +187,58 @@ void GameScene::render(sf::RenderTarget &target) const
 	const_cast<GameBoardRenderer &>(_boardRenderer).render(static_cast<sf::RenderWindow &>(target));
 	// UI
 	_backButton.render(target);
+
+	// HUD: toPlay, captures, last move, AI time
+	auto snap = _gameSession.snapshot();
+	if (_fontOk)
+	{
+		char buf[128];
+		auto caps = snap.captures;
+		std::snprintf(buf, sizeof(buf), "To play: %s   Captures ●:%d ○:%d%s%s%s",
+					  (snap.toPlay == gomoku::Player::Black ? "● Black" : "○ White"),
+					  caps.first, caps.second,
+					  (_lastAiMs >= 0 ? "   |  AI:" : ""),
+					  (_lastAiMs >= 0 ? " ms" : ""),
+					  "");
+		std::string line(buf);
+		if (snap.lastMove)
+		{
+			line += "   |  Last: ";
+			line += std::to_string((int)snap.lastMove->x);
+			line += ",";
+			line += std::to_string((int)snap.lastMove->y);
+		}
+		if (_lastAiMs >= 0)
+		{
+			line += "   |  AI time: ";
+			line += std::to_string(_lastAiMs);
+			line += "ms";
+		}
+		_hudText.setString(line);
+		target.draw(_hudText);
+	}
+
+	// Illegal message (timed)
+	if (_fontOk && !_illegalMsg.empty() && _illegalClock.getElapsedTime().asSeconds() < 2.0f)
+	{
+		target.draw(_msgText);
+	}
+
+	// Endgame banner
+	if (snap.status != gomoku::GameStatus::Ongoing && _fontOk)
+	{
+		sf::Text endTxt;
+		endTxt.setFont(_font);
+		endTxt.setCharacterSize(36);
+		endTxt.setFillColor(sf::Color::Yellow);
+		std::string msg = (snap.status == gomoku::GameStatus::Draw) ? "Draw" : "Victory";
+		endTxt.setString(msg);
+		endTxt.setPosition(20.f, 50.f);
+		target.draw(endTxt);
+	}
+
+	// Mark that at least one frame has been presented; allows AI to start next update
+	_framePresented = true;
 }
 
 void GameScene::onBackClicked(void)
