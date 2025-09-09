@@ -6,8 +6,7 @@
 
 namespace gomoku {
 
-static inline Cell cellOf(Player p) { return p == Player::Black ? Cell::Black : Cell::White; }
-static inline Player other(Player p) { return p == Player::Black ? Player::White : Player::Black; }
+// Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
 
 // ------------------ Zobrist ------------------
 namespace {
@@ -70,7 +69,7 @@ bool Board::createsIllegalDoubleThree(Move m, const RuleSet& rules) const
     if (rules.capturesEnabled && wouldCapture(m))
         return false;
 
-    const Cell ME = cellOf(m.by);
+    const Cell ME = playerToCell(m.by);
     const Cell OP = (ME == Cell::Black ? Cell::White : Cell::Black);
 
     // cases virtuellement retirées par capture causée par m
@@ -227,8 +226,8 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
     // must capture to break it (or win by capture). Non-breaking moves are illegal.
     bool mustBreak = false;
     if (rules.allowFiveOrMore && rules.capturesEnabled) {
-        Player justPlayed = other(side);
-        Cell meC = cellOf(justPlayed);
+        Player justPlayed = opponent(side);
+        Cell meC = playerToCell(justPlayed);
         if (hasAnyFive(meC) && isFiveBreakableNow(justPlayed, rules))
             mustBreak = true;
     }
@@ -244,9 +243,9 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
         // Simulate capture effect to ensure this move actually breaks (or wins by capture)
         Board sim = *this;
         // place the stone (ignore pattern illegality here since must-break allows capture exceptions)
-        sim.cells[idx(m.pos.x, m.pos.y)] = cellOf(m.by);
+        sim.cells[idx(m.pos.x, m.pos.y)] = playerToCell(m.by);
         std::vector<Pos> removedTmp;
-        int gainedTmp = sim.applyCapturesAround(m.pos, cellOf(m.by), rules, removedTmp);
+        int gainedTmp = sim.applyCapturesAround(m.pos, playerToCell(m.by), rules, removedTmp);
         if (gainedTmp) {
             if (m.by == Player::Black)
                 sim.blackPairs += gainedTmp;
@@ -254,7 +253,7 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
                 sim.whitePairs += gainedTmp;
         }
         int myPairsAfter = (m.by == Player::Black ? sim.blackPairs : sim.whitePairs);
-        Cell oppFiveColor = cellOf(other(side));
+        Cell oppFiveColor = playerToCell(opponent(side));
         bool breaks = (myPairsAfter >= rules.captureWinPairs) || (!sim.hasAnyFive(oppFiveColor));
         if (!breaks) {
             if (whyNot)
@@ -281,12 +280,12 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
     u.sideBefore = side;
 
     // Placer la pierre
-    cells[idx(m.pos.x, m.pos.y)] = cellOf(m.by);
+    cells[idx(m.pos.x, m.pos.y)] = playerToCell(m.by);
     // Zobrist: ajouter la pierre
-    zobrist_ ^= z_of(cellOf(m.by), m.pos.x, m.pos.y);
+    zobrist_ ^= z_of(playerToCell(m.by), m.pos.x, m.pos.y);
 
     // Captures (XOOX)
-    int gained = applyCapturesAround(m.pos, cellOf(m.by), rules, u.removed);
+    int gained = applyCapturesAround(m.pos, playerToCell(m.by), rules, u.removed);
     if (gained) {
         if (m.by == Player::Black)
             blackPairs += gained;
@@ -300,7 +299,7 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
     }
 
     // Victoire par 5+ avec nuance "cassable par capture"
-    if (rules.allowFiveOrMore && checkFiveOrMoreFrom(m.pos, cellOf(m.by))) {
+    if (rules.allowFiveOrMore && checkFiveOrMoreFrom(m.pos, playerToCell(m.by))) {
         if (!isFiveBreakableNow(m.by, rules)) {
             state = GameStatus::WinByAlign;
         }
@@ -317,7 +316,7 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
         state = GameStatus::Draw;
 
     history.push_back(std::move(u));
-    side = other(side);
+    side = opponent(side);
     // Zobrist: side-to-move
     zobrist_ ^= Z_SIDE;
 
@@ -338,7 +337,7 @@ bool Board::undo()
     // Retirer la pierre jouée
     cells[idx(u.move.pos.x, u.move.pos.y)] = Cell::Empty;
     // Zobrist: retirer la pierre annulée
-    zobrist_ ^= z_of(cellOf(u.move.by), u.move.pos.x, u.move.pos.y);
+    zobrist_ ^= z_of(playerToCell(u.move.by), u.move.pos.x, u.move.pos.y);
 
     // Restaurer les pierres capturées
     Cell oppC = (u.move.by == Player::Black ? Cell::White : Cell::Black);
@@ -413,7 +412,7 @@ bool Board::isFiveBreakableNow(Player justPlayed, const RuleSet& rules) const
         return false;
 
     Player opp = (justPlayed == Player::Black ? Player::White : Player::Black);
-    Cell meC = cellOf(justPlayed);
+    Cell meC = playerToCell(justPlayed);
 
     Board base = *this;
     base.forceSide(opp); // au trait pour l'adversaire dans la simulation
@@ -430,9 +429,9 @@ bool Board::isFiveBreakableNow(Player justPlayed, const RuleSet& rules) const
 
             Board sim = base;
             // place the stone and apply captures
-            sim.cells[idx(mv.pos.x, mv.pos.y)] = cellOf(opp);
+            sim.cells[idx(mv.pos.x, mv.pos.y)] = playerToCell(opp);
             std::vector<Pos> removed;
-            int gained = sim.applyCapturesAround(mv.pos, cellOf(opp), rules, removed);
+            int gained = sim.applyCapturesAround(mv.pos, playerToCell(opp), rules, removed);
             if (gained) {
                 if (opp == Player::Black)
                     sim.blackPairs += gained;
@@ -470,7 +469,7 @@ bool Board::isBoardFull() const
 // Détecte si m provoquerait une capture XOOX (±4 directions)
 bool Board::wouldCapture(Move m) const
 {
-    const Cell me = cellOf(m.by);
+    const Cell me = playerToCell(m.by);
     const Cell opp = (me == Cell::Black ? Cell::White : Cell::Black);
     static constexpr int DX[4] = { 1, 0, 1, 1 };
     static constexpr int DY[4] = { 0, 1, 1, -1 };

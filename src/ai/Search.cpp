@@ -5,8 +5,7 @@
 
 namespace gomoku {
 
-static inline Cell cellOf(Player p) { return p == Player::Black ? Cell::Black : Cell::White; }
-static inline Player other(Player p) { return p == Player::Black ? Player::White : Player::Black; }
+// Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
 
 std::optional<Move> Search::bestMove(Board& board, const RuleSet& rules, SearchStats* stats)
 {
@@ -166,7 +165,7 @@ Search::ABResult Search::alphabeta(Board& b, const RuleSet& rules, int depth, in
     if (b.status() != GameStatus::Ongoing) {
         int val = 0;
         if (b.status() == GameStatus::WinByAlign || b.status() == GameStatus::WinByCapture) {
-            Player winner = other(b.toPlay());
+            Player winner = opponent(b.toPlay());
             val = (winner == maxPlayer) ? 1'000'000 : -1'000'000;
         }
         return { val, std::nullopt };
@@ -362,7 +361,7 @@ int Search::evaluate(const Board& b, Player pov) const
 {
     auto scoreSide = [&](Player p) -> int {
         int sum = 0;
-        Cell who = cellOf(p);
+        Cell who = playerToCell(p);
         for (uint8_t y = 0; y < BOARD_SIZE; ++y) {
             for (uint8_t x = 0; x < BOARD_SIZE; ++x) {
                 if (b.at(x, y) != who)
@@ -380,7 +379,7 @@ int Search::evaluate(const Board& b, Player pov) const
     };
 
     int me = scoreSide(pov);
-    int opp = scoreSide(other(pov));
+    int opp = scoreSide(opponent(pov));
     return me - opp;
 }
 

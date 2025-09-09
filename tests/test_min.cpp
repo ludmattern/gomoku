@@ -56,7 +56,8 @@ TEST(capture_basic)
     CHECK(e.board().at(1, 0) == Cell::Empty);
     CHECK(e.board().at(2, 0) == Cell::Empty);
     if (::tfx::ctx().printBoards || ::tfx::ctx().verbose) {
-        std::cout << "Capture scenario after D1:" << std::endl;
+        std::cout << "Capture scenario after D1 at " << Pos { 3, 0 } << ":" << std::endl;
+        std::cout << "Captured pairs: Black=" << caps.first << ", White=" << caps.second << std::endl;
         testutil::printBoard(e.board());
     }
 }
@@ -88,7 +89,7 @@ TEST(double_three_illegal)
     // Now Black to play at (10,10) should be illegal due to double-three (no capture pattern around)
     Move m { Pos { 10, 10 }, e.board().toPlay() };
     if (::tfx::ctx().printBoards || ::tfx::ctx().verbose) {
-        std::cout << "Before testing double-three at K11:" << std::endl;
+        std::cout << "Before testing double-three with move " << m << " at K11:" << std::endl;
         testutil::printBoard(e.board());
     }
     ok = e.isLegal(m, &why);
@@ -122,7 +123,7 @@ TEST(double_three_illegal_diag_vertical)
     // Now Black to play at (10,10) should be illegal (no capture pattern arranged horizontally)
     Move m { Pos { 10, 10 }, e.board().toPlay() };
     if (::tfx::ctx().printBoards || ::tfx::ctx().verbose) {
-        std::cout << "Before testing diagonal+vertical double-three at K11:" << std::endl;
+        std::cout << "Before testing diagonal+vertical double-three with move " << m << " at K11:" << std::endl;
         testutil::printBoard(e.board());
     }
     ok = e.isLegal(m, &why);
@@ -165,7 +166,7 @@ TEST(double_three_allowed_if_capture)
     // Now Black to play at (10,10) creates two threes AND captures (9,10) and (8,10) -> should be allowed
     Move m { Pos { 10, 10 }, e.board().toPlay() };
     if (::tfx::ctx().printBoards || ::tfx::ctx().verbose) {
-        std::cout << "Before testing capture-exception at K11:" << std::endl;
+        std::cout << "Testing capture-exception with move " << m << " at K11:" << std::endl;
         testutil::printBoard(e.board());
     }
     ok = e.isLegal(m, &why);

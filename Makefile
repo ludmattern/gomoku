@@ -42,7 +42,8 @@ CORE_SRC = \
 	$(SRC_DIR)/ai/Search.cpp \
 	$(SRC_DIR)/app/Engine.cpp \
 	$(SRC_DIR)/app/GameSession.cpp \
-	$(SRC_DIR)/app/Notation.cpp
+	$(SRC_DIR)/app/Notation.cpp \
+	$(SRC_DIR)/app/Types.cpp
 
 GUI_SRC = \
 	main.cpp \
