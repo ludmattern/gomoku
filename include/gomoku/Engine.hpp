@@ -1,6 +1,7 @@
 #pragma once
 #include "Types.hpp"
 #include "gomoku/BoardView.hpp"
+#include "gomoku/SearchStats.hpp"
 #include <memory>
 #include <string>
 #include <vector>

@@ -16,51 +16,55 @@ class Board final : public BoardView {
 public:
     Board();
 
-    // ---- BoardView ----
+    // ---- BoardView interface ----
     Cell at(uint8_t x, uint8_t y) const override;
-    Player toPlay() const override { return side; }
-    std::pair<int, int> capturedPairs() const override { return { blackPairs, whitePairs }; }
-    GameStatus status() const override { return state; }
+    Player toPlay() const override { return currentPlayer; }
+    CaptureCount capturedPairs() const override { return { blackPairs, whitePairs }; }
+    GameStatus status() const override { return gameState; }
+    bool isBoardFull() const override;
+    std::vector<Move> legalMoves(Player p, const RuleSet& rules) const override;
+    uint64_t zobristKey() const override { return zobristHash; }
 
-    // ---- API ----
+    // ---- Board-specific API ----
     void reset();
-    bool isInside(int x, int y) const { return (0 <= x && x < BOARD_SIZE && 0 <= y && y < BOARD_SIZE); }
+    bool isInside(uint8_t x, uint8_t y) const { return x < BOARD_SIZE && y < BOARD_SIZE; }
     bool isEmpty(uint8_t x, uint8_t y) const { return isInside(x, y) && cells[idx(x, y)] == Cell::Empty; }
 
-    bool play(Move m, const RuleSet& rules, std::string* whyNot);
+    PlayResult tryPlay(Move m, const RuleSet& rules);
     bool undo();
 
-    std::vector<Move> legalMoves(Player p, const RuleSet& rules) const;
+    // Legacy API for compatibility
+    bool play(Move m, const RuleSet& rules, std::string* whyNot = nullptr)
+    {
+        auto result = tryPlay(m, rules);
+        if (whyNot)
+            *whyNot = result.error;
+        return result.success;
+    }
 
-    // Zobrist
-    uint64_t zobristKey() const { return zobrist_; }
-
-    // Gestion explicite du trait
+    // Force player turn (for specific game setups)
     void forceSide(Player p);
-
-    // Utilitaire: plein ?
-    bool isBoardFull() const;
 
 private:
     static constexpr int N = BOARD_SIZE * BOARD_SIZE;
-    static constexpr int idx(int x, int y) { return y * BOARD_SIZE + x; }
+    static constexpr uint16_t idx(uint8_t x, uint8_t y) { return y * BOARD_SIZE + x; }
 
     std::array<Cell, N> cells {};
-    Player side { Player::Black };
+    Player currentPlayer { Player::Black };
     int blackPairs { 0 }, whitePairs { 0 };
-    GameStatus state { GameStatus::Ongoing };
+    GameStatus gameState { GameStatus::Ongoing };
 
     struct UndoEntry {
         Move move {};
-        std::vector<Pos> removed; // pierres capturées
+        std::vector<Pos> capturedStones; // pierres capturées
         int blackPairsBefore { 0 }, whitePairsBefore { 0 };
         GameStatus stateBefore { GameStatus::Ongoing };
-        Player sideBefore { Player::Black };
+        Player playerBefore { Player::Black };
     };
-    std::vector<UndoEntry> history;
+    std::vector<UndoEntry> moveHistory;
 
-    // --- Zobrist ---
-    uint64_t zobrist_ = 0;
+    // --- Zobrist hash ---
+    uint64_t zobristHash = 0;
 
     // --- Règles / détections ---
     bool createsIllegalDoubleThree(Move m, const RuleSet& rules) const;

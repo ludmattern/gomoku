@@ -1,4 +1,5 @@
 #pragma once
+#include "gomoku/SearchStats.hpp"
 #include "gomoku/Types.hpp"
 #include <chrono>
 #include <cstddef>

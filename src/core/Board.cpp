@@ -47,15 +47,15 @@ Cell Board::at(uint8_t x, uint8_t y) const
 void Board::reset()
 {
     cells.fill(Cell::Empty);
-    side = Player::Black;
+    currentPlayer = Player::Black;
     blackPairs = whitePairs = 0;
-    state = GameStatus::Ongoing;
-    history.clear();
+    gameState = GameStatus::Ongoing;
+    moveHistory.clear();
 
     // Zobrist
-    zobrist_ = 0ull;
+    zobristHash = 0ull;
     // Encode le trait (Black to move)
-    zobrist_ ^= Z_SIDE;
+    zobristHash ^= Z_SIDE;
 }
 
 // ------------------------------------------------
@@ -204,29 +204,23 @@ int Board::applyCapturesAround(Pos p, Cell who, const RuleSet& rules, std::vecto
 }
 
 // ------------------------------------------------
-bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
+PlayResult Board::tryPlay(Move m, const RuleSet& rules)
 {
-    if (state != GameStatus::Ongoing) {
-        if (whyNot)
-            *whyNot = "Game already finished.";
-        return false;
+    if (gameState != GameStatus::Ongoing) {
+        return PlayResult::fail("Game already finished.");
     }
-    if (m.by != side) {
-        if (whyNot)
-            *whyNot = "Not this player's turn.";
-        return false;
+    if (m.by != currentPlayer) {
+        return PlayResult::fail("Not this player's turn.");
     }
     if (!isEmpty(m.pos.x, m.pos.y)) {
-        if (whyNot)
-            *whyNot = "Cell not empty.";
-        return false;
+        return PlayResult::fail("Cell not empty.");
     }
 
     // Must-break rule: if opponent (justPlayed) currently has a breakable 5+, the side to move
     // must capture to break it (or win by capture). Non-breaking moves are illegal.
     bool mustBreak = false;
     if (rules.allowFiveOrMore && rules.capturesEnabled) {
-        Player justPlayed = opponent(side);
+        Player justPlayed = opponent(currentPlayer);
         Cell meC = playerToCell(justPlayed);
         if (hasAnyFive(meC) && isFiveBreakableNow(justPlayed, rules))
             mustBreak = true;
@@ -236,9 +230,7 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
     if (mustBreak) {
         // Only capturing moves can break a 5+; quickly reject otherwise
         if (!wouldCapture(m)) {
-            if (whyNot)
-                *whyNot = "Must break opponent's five.";
-            return false;
+            return PlayResult::fail("Must break opponent's five.");
         }
         // Simulate capture effect to ensure this move actually breaks (or wins by capture)
         Board sim = *this;
@@ -253,12 +245,10 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
                 sim.whitePairs += gainedTmp;
         }
         int myPairsAfter = (m.by == Player::Black ? sim.blackPairs : sim.whitePairs);
-        Cell oppFiveColor = playerToCell(opponent(side));
+        Cell oppFiveColor = playerToCell(opponent(currentPlayer));
         bool breaks = (myPairsAfter >= rules.captureWinPairs) || (!sim.hasAnyFive(oppFiveColor));
         if (!breaks) {
-            if (whyNot)
-                *whyNot = "Must break opponent's five.";
-            return false;
+            return PlayResult::fail("Must break opponent's five.");
         }
         // This capture move is allowed even if it forms a double-three pattern
         allowDoubleThreeThisMove = true;
@@ -266,9 +256,7 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
 
     // Double-three rule, unless allowed due to must-break capture
     if (!allowDoubleThreeThisMove && createsIllegalDoubleThree(m, rules)) {
-        if (whyNot)
-            *whyNot = "Illegal double-three.";
-        return false;
+        return PlayResult::fail("Illegal double-three.");
     }
 
     // Enregistrer état pour undo
@@ -276,16 +264,16 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
     u.move = m;
     u.blackPairsBefore = blackPairs;
     u.whitePairsBefore = whitePairs;
-    u.stateBefore = state;
-    u.sideBefore = side;
+    u.stateBefore = gameState;
+    u.playerBefore = currentPlayer;
 
     // Placer la pierre
     cells[idx(m.pos.x, m.pos.y)] = playerToCell(m.by);
     // Zobrist: ajouter la pierre
-    zobrist_ ^= z_of(playerToCell(m.by), m.pos.x, m.pos.y);
+    zobristHash ^= z_of(playerToCell(m.by), m.pos.x, m.pos.y);
 
     // Captures (XOOX)
-    int gained = applyCapturesAround(m.pos, playerToCell(m.by), rules, u.removed);
+    int gained = applyCapturesAround(m.pos, playerToCell(m.by), rules, u.capturedStones);
     if (gained) {
         if (m.by == Player::Black)
             blackPairs += gained;
@@ -293,63 +281,63 @@ bool Board::play(Move m, const RuleSet& rules, std::string* whyNot)
             whitePairs += gained;
         // Zobrist: retirer les capturées (couleur adverse)
         Cell oppC = (m.by == Player::Black ? Cell::White : Cell::Black);
-        for (auto rp : u.removed) {
-            zobrist_ ^= z_of(oppC, rp.x, rp.y);
+        for (auto rp : u.capturedStones) {
+            zobristHash ^= z_of(oppC, rp.x, rp.y);
         }
     }
 
     // Victoire par 5+ avec nuance "cassable par capture"
     if (rules.allowFiveOrMore && checkFiveOrMoreFrom(m.pos, playerToCell(m.by))) {
         if (!isFiveBreakableNow(m.by, rules)) {
-            state = GameStatus::WinByAlign;
+            gameState = GameStatus::WinByAlign;
         }
     }
 
     // Victoire par captures (ne pas écraser une victoire déjà établie si on veut priorité align)
-    if (rules.capturesEnabled && state == GameStatus::Ongoing) {
+    if (rules.capturesEnabled && gameState == GameStatus::Ongoing) {
         if (blackPairs >= rules.captureWinPairs || whitePairs >= rules.captureWinPairs)
-            state = GameStatus::WinByCapture;
+            gameState = GameStatus::WinByCapture;
     }
 
     // Nulle: plateau plein sans victoire
-    if (state == GameStatus::Ongoing && isBoardFull())
-        state = GameStatus::Draw;
+    if (gameState == GameStatus::Ongoing && isBoardFull())
+        gameState = GameStatus::Draw;
 
-    history.push_back(std::move(u));
-    side = opponent(side);
+    moveHistory.push_back(std::move(u));
+    currentPlayer = opponent(currentPlayer);
     // Zobrist: side-to-move
-    zobrist_ ^= Z_SIDE;
+    zobristHash ^= Z_SIDE;
 
-    return true;
+    return PlayResult::ok();
 }
 
 // ------------------------------------------------
 bool Board::undo()
 {
-    if (history.empty())
+    if (moveHistory.empty())
         return false;
-    UndoEntry u = std::move(history.back());
-    history.pop_back();
+    UndoEntry u = std::move(moveHistory.back());
+    moveHistory.pop_back();
 
     // Zobrist: le trait redevient celui d'avant
-    zobrist_ ^= Z_SIDE;
+    zobristHash ^= Z_SIDE;
 
     // Retirer la pierre jouée
     cells[idx(u.move.pos.x, u.move.pos.y)] = Cell::Empty;
     // Zobrist: retirer la pierre annulée
-    zobrist_ ^= z_of(playerToCell(u.move.by), u.move.pos.x, u.move.pos.y);
+    zobristHash ^= z_of(playerToCell(u.move.by), u.move.pos.x, u.move.pos.y);
 
     // Restaurer les pierres capturées
     Cell oppC = (u.move.by == Player::Black ? Cell::White : Cell::Black);
-    for (auto rp : u.removed) {
+    for (auto rp : u.capturedStones) {
         cells[idx(rp.x, rp.y)] = oppC;
         // Zobrist: remettre les capturées
-        zobrist_ ^= z_of(oppC, rp.x, rp.y);
+        zobristHash ^= z_of(oppC, rp.x, rp.y);
     }
     blackPairs = u.blackPairsBefore;
     whitePairs = u.whitePairsBefore;
-    state = u.stateBefore;
-    side = u.sideBefore;
+    gameState = u.stateBefore;
+    currentPlayer = u.playerBefore;
     return true;
 }
 
@@ -377,7 +365,7 @@ std::vector<Move> Board::legalMoves(Player p, const RuleSet& rules) const
                     }
                 }
             }
-            if (!near && !history.empty())
+            if (!near && !moveHistory.empty())
                 continue;
 
             Move m { { x, y }, p };
@@ -451,10 +439,10 @@ bool Board::isFiveBreakableNow(Player justPlayed, const RuleSet& rules) const
 
 void Board::forceSide(Player p)
 {
-    if (side != p) {
-        side = p;
+    if (currentPlayer != p) {
+        currentPlayer = p;
         // Maintenir la clé Zobrist alignée avec "side to move"
-        zobrist_ ^= Z_SIDE;
+        zobristHash ^= Z_SIDE;
     }
 }
 

@@ -97,14 +97,26 @@ struct EngineConfig {
     uint32_t randomSeed = 0; // Seed for the random number generator
 };
 
-/// @brief Represents the statistics for a search
-struct SearchStats {
-    long long nodes = 0;
-    long long qnodes = 0;
-    int depthReached = 0;
-    int timeMs = 0;
-    int ttHits = 0;
-    std::vector<Move> principalVariation;
+/// @brief Represents captured stone pairs count
+struct CaptureCount {
+    int black = 0;
+    int white = 0;
+
+    constexpr bool operator==(const CaptureCount& other) const noexcept
+    {
+        return black == other.black && white == other.white;
+    }
+};
+
+/// @brief Result of attempting to play a move
+struct PlayResult {
+    bool success = false;
+    std::string error; // Empty if successful
+
+    constexpr explicit operator bool() const noexcept { return success; }
+
+    static PlayResult ok() { return { true, "" }; }
+    static PlayResult fail(std::string reason) { return { false, std::move(reason) }; }
 };
 
 /// @brief Game status/outcome

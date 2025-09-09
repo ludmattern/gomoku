@@ -1,5 +1,6 @@
 #pragma once
-#include "gomoku/Engine.hpp" // expose BoardView, Engine, RuleSet, Move, SearchStats
+#include "gomoku/Engine.hpp" // expose BoardView, Engine, RuleSet, Move
+#include "gomoku/SearchStats.hpp"
 #include <optional>
 #include <string>
 #include <vector>
@@ -19,7 +20,7 @@ enum class Controller {
     AI
 };
 
-struct PlayResult {
+struct GamePlayResult {
     bool ok;
     std::string why; // si !ok
     std::optional<Move> mv; // coup effectivement joué
@@ -38,8 +39,8 @@ public:
     Controller controller(Player side) const;
 
     // Coups
-    PlayResult playHuman(Pos p); // vérifie isLegal + play
-    PlayResult playAI(int timeMs = 450); // bestMove + play
+    GamePlayResult playHuman(Pos p); // vérifie isLegal + play
+    GamePlayResult playAI(int timeMs = 450); // bestMove + play
     bool undo(int halfMoves = 1); // 1=dernier coup, 2=un “tour”
     void reset(Player start = Player::Black);
 

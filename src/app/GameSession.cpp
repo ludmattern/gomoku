@@ -13,11 +13,12 @@ GameSession::GameSession(const RuleSet& rules, Controller black, Controller whit
 GameSnapshot GameSession::snapshot() const
 {
     auto& b = eng_.board();
+    auto captures = b.capturedPairs();
     return GameSnapshot {
         .view = &b,
         .lastMove = last_,
         .toPlay = b.toPlay(),
-        .captures = b.capturedPairs(),
+        .captures = { captures.black, captures.white },
         .status = b.status()
     };
 }
@@ -34,7 +35,7 @@ Controller GameSession::controller(Player side) const
     return (side == Player::Black) ? black_ : white_;
 }
 
-PlayResult GameSession::playHuman(Pos p)
+GamePlayResult GameSession::playHuman(Pos p)
 {
     Move m { p, eng_.board().toPlay() };
     std::string why;
@@ -45,7 +46,7 @@ PlayResult GameSession::playHuman(Pos p)
     return { true, {}, m, std::nullopt };
 }
 
-PlayResult GameSession::playAI(int timeMs)
+GamePlayResult GameSession::playAI(int timeMs)
 {
     SearchStats st {};
     auto bm = eng_.bestMove(timeMs, &st);
