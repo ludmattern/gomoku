@@ -115,7 +115,8 @@ fclean: clean
 	@rm -f $(TARGET) $(LIB_NAME) $(TEST_BIN) $(CLI_BIN)
 
 # Rebuild rule
-re: fclean all
+re: fclean
+	@$(MAKE) all
 
 # Install rule (optional)
 install: $(TARGET)
@@ -123,36 +124,9 @@ install: $(TARGET)
 	@mkdir -p ~/bin
 	@cp $(TARGET) ~/bin/
 
-# SFML rule - SFML and dependencies installation
+# SFML setup - delegates to script for complex logic
 SFML:
-	@echo "Checking SFML..."
-	@if [ "$(UNAME_S)" = "Darwin" ]; then \
-		echo "macOS system detected"; \
-		if brew list sfml >/dev/null 2>&1; then \
-			echo "SFML installed via Homebrew"; \
-			echo "Available libraries:"; \
-			ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
-		else \
-			echo "Installing SFML via Homebrew..."; \
-			brew install sfml; \
-			echo "SFML installed successfully!"; \
-		fi; \
-	else \
-		if [ -d "$(SFML_DIR)" ] && [ -f "$(SFML_DIR)/lib/libsfml-graphics.so" ]; then \
-			echo "SFML is already installed in $(SFML_DIR)"; \
-			echo "Available libraries:"; \
-			ls $(SFML_DIR)/lib/libsfml* 2>/dev/null | head -3; \
-		else \
-			echo "SFML not found, installation in progress..."; \
-			if [ -f "./scripts/install_sfml.sh" ]; then \
-				./scripts/install_sfml.sh; \
-			else \
-				echo "Script scripts/install_sfml.sh not found!"; \
-			fi; \
-		fi; \
-	fi
-	@echo "Checking dependencies..."; \
-	make check-deps
+	@./scripts/setup_sfml.sh
 
 # Uninstall rule
 uninstall:
@@ -160,9 +134,34 @@ uninstall:
 
 # Help rule
 help:
-	@echo "Makefile Gomoku"
-	@echo "Targets: all | lib | $(TARGET) | $(TEST_BIN) | $(CLI_BIN) | test | debug | clean | fclean | re | SFML | install | uninstall | help"
-	@echo "System: $(UNAME_S)  CXX: $(CXX)  CXXFLAGS: $(CXXFLAGS)  SFML: $(SFML_DIR)"
+	@echo "Gomoku Project Makefile"
+	@echo ""
+	@echo "Build Targets:"
+	@echo "  all       - Build main GUI executable (default)"
+	@echo "  lib       - Build core library only"
+	@echo "  debug     - Build with debug symbols (-g -DDEBUG)"
+	@echo "  test      - Build and run tests"
+	@echo "  cli       - Build and run CLI version"
+	@echo ""
+	@echo "Clean Targets:"
+	@echo "  clean     - Remove build directory"
+	@echo "  fclean    - Remove build + binaries + libraries"
+	@echo "  re        - Full rebuild (fclean + all)"
+	@echo ""
+	@echo "Setup Targets:"
+	@echo "  SFML      - Check/install SFML dependencies"
+	@echo "  check-deps- Check system dependencies"
+	@echo ""
+	@echo "Install Targets:"
+	@echo "  install   - Install executable to ~/bin/"
+	@echo "  uninstall - Remove from ~/bin/"
+	@echo ""
+	@echo "System Info:"
+	@echo "  System: $(UNAME_S)"
+	@echo "  Compiler: $(CXX)"
+	@echo "  Flags: $(CXXFLAGS)"
+	@echo "  SFML: $(SFML_DIR)"
+	@echo "  Parallel jobs: $(shell nproc) (automatic)"
 
 # Rule to check dependencies
 check-deps:
@@ -202,7 +201,8 @@ cli: $(CLI_BIN)
 # export LD_LIBRARY_PATH := $(SFML_DIR)/lib:$(LD_LIBRARY_PATH)
 # export LD_LIBRARY_PATH := $(SFML_DIR)/lib64:$(LD_LIBRARY_PATH)
 
--include $(DEPFILES)
+# Include dependency files only if they exist
+-include $(wildcard $(DEPFILES))
 
 # Phony rules
-.PHONY: all debug clean fclean re install uninstall help check-deps test SFML lib cli
+.PHONY: all debug clean fclean re install uninstall help check-deps test SFML lib cli setup
