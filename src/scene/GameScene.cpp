@@ -12,17 +12,17 @@ GameScene::GameScene(Context& context, bool vsAi)
     // Initialisation du bouton Back
     _backButton.setPosition({ 100, 820 });
     _backButton.setSize({ 300, 70 });
-    if (_context.ressourceManager && _context.ressourceManager->hasTexture("back_button"))
-        _backButton.setTexture(&_context.ressourceManager->getTexture("back_button"));
+    if (_context.resourceManager && _context.resourceManager->hasTexture("back_button"))
+        _backButton.setTexture(&_context.resourceManager->getTexture("back_button"));
     _backButton.setScale(1.0f);
     _backButton.setCallback([this]() { onBackClicked(); });
 
     // Initialisation du renderer de plateau
-    if (_context.ressourceManager) {
+    if (_context.resourceManager) {
         _boardRenderer.setTextures(
-            _context.ressourceManager->getTexture("board"),
-            _context.ressourceManager->getTexture("pawn1"),
-            _context.ressourceManager->getTexture("pawn2"));
+            _context.resourceManager->getTexture("board"),
+            _context.resourceManager->getTexture("pawn1"),
+            _context.resourceManager->getTexture("pawn2"));
     }
 
     _rules = gomoku::RuleSet();
@@ -171,8 +171,8 @@ void GameScene::update(sf::Time& deltaTime)
 void GameScene::render(sf::RenderTarget& target) const
 {
     // Fond de jeu
-    if (_context.ressourceManager && _context.ressourceManager->hasTexture("gameBackground")) {
-        sf::Sprite bg(_context.ressourceManager->getTexture("gameBackground"));
+    if (_context.resourceManager && _context.resourceManager->hasTexture("gameBackground")) {
+        sf::Sprite bg(_context.resourceManager->getTexture("gameBackground"));
         bg.setScale(sf::Vector2f(1.0f, 1.0f));
         target.draw(bg);
     }

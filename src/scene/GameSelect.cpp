@@ -6,22 +6,22 @@ GameSelectScene::GameSelectScene(Context& ctx)
 {
     _playerVsPlayerButton.setPosition({ 111, 696 });
     _playerVsPlayerButton.setSize({ 300, 70 });
-    if (_context.ressourceManager && _context.ressourceManager->hasTexture("vs_player_button"))
-        _playerVsPlayerButton.setTexture(&_context.ressourceManager->getTexture("vs_player_button"));
+    if (_context.resourceManager && _context.resourceManager->hasTexture("vs_player_button"))
+        _playerVsPlayerButton.setTexture(&_context.resourceManager->getTexture("vs_player_button"));
     _playerVsPlayerButton.setScale(1.0f);
     _playerVsPlayerButton.setCallback([this]() { onPlayerVsPlayerClicked(); });
 
     _playerVsBotButton.setPosition({ 693, 696 });
     _playerVsBotButton.setSize({ 300, 70 });
-    if (_context.ressourceManager && _context.ressourceManager->hasTexture("vs_ai_button"))
-        _playerVsBotButton.setTexture(&_context.ressourceManager->getTexture("vs_ai_button"));
+    if (_context.resourceManager && _context.resourceManager->hasTexture("vs_ai_button"))
+        _playerVsBotButton.setTexture(&_context.resourceManager->getTexture("vs_ai_button"));
     _playerVsBotButton.setScale(1.0f);
     _playerVsBotButton.setCallback([this]() { onPlayerVsBotClicked(); });
 
     _backButton.setPosition({ 1284, 695.5 });
     _backButton.setSize({ 300, 70 });
-    if (_context.ressourceManager && _context.ressourceManager->hasTexture("back_button"))
-        _backButton.setTexture(&_context.ressourceManager->getTexture("back_button"));
+    if (_context.resourceManager && _context.resourceManager->hasTexture("back_button"))
+        _backButton.setTexture(&_context.resourceManager->getTexture("back_button"));
     _backButton.setScale(1.0f);
     _backButton.setCallback([this]() { onBackClicked(); });
 }

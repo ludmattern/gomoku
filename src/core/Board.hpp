@@ -9,6 +9,8 @@
 
 namespace gomoku {
 
+// Implémentation concrète de BoardView pour libgomoku_core.a
+// API publique : voir include/gomoku/BoardView.hpp
 // Représentation métier sans dépendance UI
 class Board final : public BoardView {
 public:

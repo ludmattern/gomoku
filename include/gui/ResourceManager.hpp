@@ -3,10 +3,10 @@
 #include <string>
 #include <unordered_map>
 
-class RessourceManager {
+class ResourceManager {
 public:
-    RessourceManager(std::string packagePath);
-    ~RessourceManager(void);
+    ResourceManager(std::string packagePath);
+    ~ResourceManager(void);
 
     bool init(void);
     void cleanup(void);

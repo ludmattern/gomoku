@@ -1,4 +1,4 @@
-#include "GameBoardRenderer.hpp"
+#include "gui/GameBoardRenderer.hpp"
 #include <cmath>
 #include <iostream>
 

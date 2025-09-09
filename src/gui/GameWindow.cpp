@@ -1,4 +1,4 @@
-#include "GameWindow.hpp"
+#include "gui/GameWindow.hpp"
 #include "scene/Context.hpp"
 #include "scene/GameScene.hpp"
 #include "scene/GameSelect.hpp"
@@ -7,7 +7,7 @@
 #include <iostream>
 
 GameWindow::GameWindow(void)
-    : _ressourceManager("default")
+    : _resourceManager("default")
     , _backgroundSprite(nullptr)
 {
     _isRunning = false;
@@ -35,16 +35,16 @@ void GameWindow::init(void)
 
     _context = Context();
     _context.window = &_window;
-    _context.ressourceManager = &_ressourceManager;
+    _context.resourceManager = &_resourceManager;
 
-    if (!_ressourceManager.init()) {
-        std::cerr << "Failed to initialize RessourceManager" << std::endl;
+    if (!_resourceManager.init()) {
+        std::cerr << "Failed to initialize ResourceManager" << std::endl;
         return;
     }
-    std::cout << "[INIT] RessourceManager ready" << std::endl;
+    std::cout << "[INIT] ResourceManager ready" << std::endl;
 
     // Background
-    _backgroundSprite = new sf::Sprite(_ressourceManager.getTexture("background"));
+    _backgroundSprite = new sf::Sprite(_resourceManager.getTexture("background"));
     // Échelle pour couvrir toute la fenêtre
     _backgroundSprite->setScale(sf::Vector2f(1.0f, 1.0f));
     std::cout << "[INIT] Background sprite created" << std::endl;
@@ -104,7 +104,7 @@ void GameWindow::cleanup(void)
     delete _backgroundSprite;
     _backgroundSprite = nullptr;
 
-    _ressourceManager.cleanup();
+    _resourceManager.cleanup();
 
     if (_window.isOpen())
         _window.close();

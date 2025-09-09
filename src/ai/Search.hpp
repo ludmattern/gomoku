@@ -9,6 +9,9 @@
 namespace gomoku {
 class Board;
 
+// Moteur de recherche IA interne pour libgomoku_core.a
+// API publique : voir include/gomoku/Engine.hpp
+
 struct SearchConfig {
     int timeBudgetMs = 450;
     int maxDepthHint = 6;

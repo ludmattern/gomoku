@@ -53,7 +53,7 @@ GUI_SRC = \
 	$(SRC_DIR)/scene/GameSelect.cpp \
 	$(SRC_DIR)/scene/MainMenu.cpp \
 	$(SRC_DIR)/ui/Button.cpp \
-	$(SRC_DIR)/gui/RessourceManager.cpp
+	$(SRC_DIR)/gui/ResourceManager.cpp
 
 TEST_SRC = \
 	tests/test_min.cpp

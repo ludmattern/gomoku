@@ -2,7 +2,7 @@
 #define GAME_WINDOW_HPP
 
 #include "GameBoardRenderer.hpp"
-#include "gui/RessourceManager.hpp"
+#include "gui/ResourceManager.hpp"
 #include "scene/AScene.hpp"
 #include "scene/Context.hpp"
 #include <SFML/Graphics.hpp>
@@ -26,7 +26,7 @@ private:
     sf::RenderWindow _window;
     bool _isRunning;
     Context _context;
-    RessourceManager _ressourceManager;
+    ResourceManager _resourceManager;
     GameBoardRenderer _boardRenderer;
     sf::Sprite* _backgroundSprite;
     std::unique_ptr<AScene> _currentScene;

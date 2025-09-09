@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameBoardRenderer.hpp"
+#include "gui/GameBoardRenderer.hpp"
 #include "gomoku/GameSession.hpp"
 #include "gomoku/Types.hpp"
 #include "scene/AScene.hpp"

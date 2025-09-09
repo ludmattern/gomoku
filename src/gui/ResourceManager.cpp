@@ -1,19 +1,19 @@
-#include "gui/RessourceManager.hpp"
+#include "gui/ResourceManager.hpp"
 #include <iostream>
 #include <string>
 
-RessourceManager::RessourceManager(std::string packagePath)
+ResourceManager::ResourceManager(std::string packagePath)
     : TEXTURE_PATH("assets/textures_pack/" + packagePath + "/")
 {
 }
 
-RessourceManager::~RessourceManager(void)
+ResourceManager::~ResourceManager(void)
 {
 }
 
-bool RessourceManager::init(void)
+bool ResourceManager::init(void)
 {
-    std::cout << "Initializing RessourceManager" << std::endl;
+    std::cout << "Initializing ResourceManager" << std::endl;
 
     if (!loadTexture("background", "assets/Title with bg.png")) {
         std::cerr << "Failed to load background texture" << std::endl;
@@ -64,18 +64,18 @@ bool RessourceManager::init(void)
         return false;
     }
 
-    std::cout << "RessourceManager initialized" << std::endl;
+    std::cout << "ResourceManager initialized" << std::endl;
     return true;
 }
 
-void RessourceManager::cleanup(void)
+void ResourceManager::cleanup(void)
 {
-    std::cout << "Cleaning up RessourceManager" << std::endl;
+    std::cout << "Cleaning up ResourceManager" << std::endl;
     _textures.clear();
-    std::cout << "RessourceManager cleaned up" << std::endl;
+    std::cout << "ResourceManager cleaned up" << std::endl;
 }
 
-sf::Texture& RessourceManager::getTexture(const std::string& name)
+sf::Texture& ResourceManager::getTexture(const std::string& name)
 {
     auto it = _textures.find(name);
     if (it == _textures.end()) {
@@ -85,7 +85,7 @@ sf::Texture& RessourceManager::getTexture(const std::string& name)
     return it->second;
 }
 
-bool RessourceManager::loadTexture(const std::string& name, const std::string& path)
+bool ResourceManager::loadTexture(const std::string& name, const std::string& path)
 {
     sf::Texture texture;
     if (!texture.loadFromFile(path)) {
@@ -98,7 +98,7 @@ bool RessourceManager::loadTexture(const std::string& name, const std::string& p
     return true;
 }
 
-bool RessourceManager::hasTexture(const std::string& name) const
+bool ResourceManager::hasTexture(const std::string& name) const
 {
     return _textures.find(name) != _textures.end();
 }
