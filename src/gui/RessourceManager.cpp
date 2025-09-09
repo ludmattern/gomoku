@@ -1,4 +1,4 @@
-#include "core/RessourceManager.hpp"
+#include "gui/RessourceManager.hpp"
 #include <iostream>
 #include <string>
 

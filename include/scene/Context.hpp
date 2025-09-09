@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/RessourceManager.hpp"
+#include "gui/RessourceManager.hpp"
 #include <SFML/Graphics.hpp>
 
 class GameBoardRenderer;

@@ -5,3 +5,11 @@ compile_commands.json
 .DS_Store
 .vscode/
 .idea/
+bin/
+lib/
+.cache/
+.ccls-cache/
+compile_commands.json
+.DS_Store
+.vscode/
+.idea/

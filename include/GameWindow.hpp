@@ -2,7 +2,7 @@
 #define GAME_WINDOW_HPP
 
 #include "GameBoardRenderer.hpp"
-#include "core/RessourceManager.hpp"
+#include "gui/RessourceManager.hpp"
 #include "scene/AScene.hpp"
 #include "scene/Context.hpp"
 #include <SFML/Graphics.hpp>
