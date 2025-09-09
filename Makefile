@@ -1,39 +1,30 @@
-# Makefile pour le projet Gomoku
-# Compilateur et flags
+# Gomoku project Makefile
+# flags and Compiler
 CXX = g++
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -O2
 
-# Détection du système d'exploitation
+# Operating system detection
 UNAME_S := $(shell uname -s)
 
-# Configuration SFML selon le système
-ifeq ($(UNAME_S),Darwin)
-    # macOS avec Homebrew
-    SFML_DIR = /opt/homebrew
-    SFML_INCLUDE = -I$(SFML_DIR)/include
-    SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
-    SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
-else
-	# Linux: utiliser un préfixe configurable (par défaut $HOME/local s'il existe, sinon /usr)
-	SFML_DIR ?= $(shell if [ -d "$(HOME)/local" ]; then echo "$(HOME)/local"; else echo "/usr"; fi)
-	SFML_INCLUDE = -I$(SFML_DIR)/include
-	SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
-	SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
-endif
+# SFML detection: rely on pkg-config (assumed present on target systems)
+# This simplifies flags and avoids manual SFML_DIR handling.
+SFML_CFLAGS := $(shell pkg-config --cflags sfml-graphics sfml-window sfml-system sfml-audio)
+SFML_LIBS   := $(shell pkg-config --libs  sfml-graphics sfml-window sfml-system sfml-audio)
+SFML_RPATH  :=
 
-# Dossiers du projet
+# Project directories
 SRC_DIR = src
 INCLUDE_DIR = include
 BUILD_DIR = build
 OBJ_DIR = $(BUILD_DIR)/obj
 
-# Noms des cibles
-TARGET = bin/Gomoku                # exécutable GUI (SFML)
-LIB_NAME = lib/libgomoku_core.a        # bibliothèque statique logique/IA
-TEST_BIN = bin/tests_runner        # binaire de tests (sans SFML)
-CLI_BIN = bin/cli                  # exécutable CLI (sans SFML)
+# Target names
+TARGET = bin/Gomoku                # GUI executable (SFML)
+LIB_NAME = lib/libgomoku_core.a        # Static library for logic/AI
+TEST_BIN = bin/tests_runner        # Test binary (without SFML)
+CLI_BIN = bin/cli                  # CLI executable (without SFML)
 
-# Groupes de sources
+# Source groups
 CORE_SRC = \
 	$(SRC_DIR)/core/Board.cpp \
 	$(SRC_DIR)/ai/Search.cpp \
@@ -64,64 +55,64 @@ GUI_OBJ  = $(GUI_SRC:%.cpp=$(OBJ_DIR)/%.o)
 TEST_OBJ = $(TEST_SRC:%.cpp=$(OBJ_DIR)/%.o)
 CLI_OBJ = $(CLI_SRC:%.cpp=$(OBJ_DIR)/%.o)
 
-# Générer les fichiers de dépendances (.d)
+# Generate dependency files (.d)
 CXXFLAGS += -MMD
 DEPFILES := $(CORE_OBJ:%.o=%.d) $(GUI_OBJ:%.o=%.d) $(TEST_OBJ:%.o=%.d) $(CLI_OBJ:%.o=%.d)
 -include $(DEPFILES)
 
-# Règle par défaut: construire l'exécutable GUI
+# Default rule: build the GUI executable
 all: $(TARGET)
 
-# Bibliothèque statique du core (pas de lien SFML requis)
+# Static library for core (no SFML linking required)
 $(LIB_NAME): $(CORE_OBJ)
 	@mkdir -p $(dir $@)
 	@echo "[AR] $@"
 	ar rcs $@ $(CORE_OBJ)
 
-# Exécutable GUI: lie la lib + SFML
+# GUI executable: links the lib + SFML
 $(TARGET): $(GUI_OBJ) $(LIB_NAME)
 	@mkdir -p $(dir $@)
 	@echo "[LD] $@"
 	$(CXX) $(GUI_OBJ) $(LIB_NAME) $(SFML_LIBS) $(SFML_RPATH) $(LDFLAGS) -o $@
 
-# Tests: binaire sans SFML, lié contre la lib core
+# Tests: binary without SFML, linked against the core lib
 $(TEST_BIN): $(TEST_OBJ) $(LIB_NAME)
 	@echo "[LD] $@"
 	$(CXX) $(TEST_OBJ) $(LIB_NAME) -o $@
 
-# CLI: exécutable sans SFML, lié contre la lib core
+# CLI: executable without SFML, linked against the core lib
 $(CLI_BIN): $(CLI_OBJ) $(LIB_NAME)
 	@echo "[LD] $@"
 	$(CXX) $(CLI_OBJ) $(LIB_NAME) -o $@
 
-# Règle pour compiler les objets (commune)
+# Rule to compile objects (common)
 $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	@echo "[CC] $<"
-	$(CXX) $(CXXFLAGS) -Isrc -I$(INCLUDE_DIR) $(SFML_INCLUDE) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Isrc -I$(INCLUDE_DIR) $(SFML_CFLAGS) -c $< -o $@
 
-# Règle debug (GUI + symboles)
+# Debug rule (GUI + symbols)
 debug: CXXFLAGS += -g -DDEBUG
 debug: $(TARGET)
 
-# Règle clean
+# Clean rule
 clean:
 	@rm -rf $(BUILD_DIR)
 
-# Règle fclean
+# Fclean rule
 fclean: clean
 	@rm -f $(TARGET) $(LIB_NAME) $(TEST_BIN) $(CLI_BIN)
 
-# Règle re
+# Re rule
 re: fclean all
 
-# Règle install (optionnelle)
+# Install rule (optional)
 install: $(TARGET)
 	@echo "[INSTALL] $< -> ~/bin/"
 	@mkdir -p ~/bin
 	@cp $(TARGET) ~/bin/
 
-# Règle SFML - Installation de SFML et dépendances
+# SFML rule - Install SFML and dependencies
 SFML:
 	@echo "Vérification de SFML..."
 	@if [ "$(UNAME_S)" = "Darwin" ]; then \
@@ -152,17 +143,17 @@ SFML:
 	@echo "Vérification des dépendances..."; \
 	make check-deps
 
-# Règle uninstall
+# Uninstall rule
 uninstall:
 	@rm -f ~/bin/$(notdir $(TARGET))
 
-# Règle help
+# Help rule
 help:
 	@echo "Makefile Gomoku"
 	@echo "Targets: all | lib | $(TARGET) | $(TEST_BIN) | $(CLI_BIN) | test | debug | clean | fclean | re | SFML | install | uninstall | help"
 	@echo "System: $(UNAME_S)  CXX: $(CXX)  CXXFLAGS: $(CXXFLAGS)  SFML: $(SFML_DIR)"
 
-# Règle pour vérifier les dépendances
+# RRule to check dependencies
 check-deps:
 	@echo "Check deps"
 	@echo "System: $(UNAME_S)"
@@ -185,23 +176,23 @@ check-deps:
 		fi; \
 	fi
 
-# Cibles pratiques
+# Practical targets
 lib: $(LIB_NAME)
 
-# Construire et exécuter les tests
+# Build and run tests
 test: $(TEST_BIN)
 	./$(TEST_BIN) -v
 
 cli: $(CLI_BIN)
 	./$(CLI_BIN) -v
 
-# Variables d'environnement pour SFML (runtime)
-# (Optionnel) Décommentez pour propager le chemin des libs SFML au runtime
+# Environment variables for SFML (runtime)
+# (Optional) Uncomment to propagate the SFML libs path at runtime
 # export LD_LIBRARY_PATH := $(SFML_DIR)/lib:$(LD_LIBRARY_PATH)
 # export LD_LIBRARY_PATH := $(SFML_DIR)/lib64:$(LD_LIBRARY_PATH)
 
-# Inclure les fichiers de dépendances (.d)
+# Include dependency files (.d)
 -include $(shell find $(OBJ_DIR) -name "*.d" 2>/dev/null)
 
-# Règles phony
+# Phony rules
 .PHONY: all debug clean fclean re install uninstall help check-deps test SFML lib cli
