@@ -1,7 +1,7 @@
 #ifndef GAME_BOARD_RENDERER_HPP
 #define GAME_BOARD_RENDERER_HPP
 
-#include "gomoku/BoardView.hpp"
+#include "gomoku/ABoardView.hpp"
 #include <SFML/Graphics.hpp>
 
 enum class CellState {
@@ -25,8 +25,8 @@ public:
     // Conversion isométrique centrée
     sf::Vector2f isoToScreen(int i, int j, float tileW, float tileH, float centerX, float centerY);
 
-    // Synchronise l'état interne avec un BoardView (source de vérité)
-    void applyBoard(const gomoku::BoardView& view);
+    // Synchronise l'état interne avec un ABoardView (source de vérité)
+    void applyBoard(const gomoku::ABoardView& view);
 
 private:
     CellState _board[19][19];

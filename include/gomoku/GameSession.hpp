@@ -1,5 +1,5 @@
 #pragma once
-#include "gomoku/Engine.hpp" // expose BoardView, Engine, RuleSet, Move
+#include "gomoku/Engine.hpp" // expose ABoardView, Engine, RuleSet, Move
 #include "gomoku/SearchStats.hpp"
 #include <optional>
 #include <string>
@@ -8,7 +8,7 @@
 namespace gomoku {
 
 struct GameSnapshot {
-    const BoardView* view; // pointeur stable vers l’état courant
+    const ABoardView* view; // pointeur stable vers l’état courant
     std::optional<Pos> lastMove; // dernier coup joué (si connu)
     Player toPlay;
     std::pair<int, int> captures; // (●, ○)

@@ -1,6 +1,6 @@
 #pragma once
 #include "Types.hpp"
-#include "gomoku/BoardView.hpp"
+#include "gomoku/ABoardView.hpp"
 #include "gomoku/SearchStats.hpp"
 #include <memory>
 #include <string>
@@ -13,7 +13,7 @@ public:
     explicit Engine(const EngineConfig& cfg = {});
     ~Engine();
 
-    const BoardView& board() const;
+    const ABoardView& board() const;
 
     // Partie
     void reset();

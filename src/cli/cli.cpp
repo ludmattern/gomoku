@@ -26,7 +26,7 @@ static void printBoardLine(const char *L, const char *H, const char *J, const ch
 	std::cout << H << R << "\n";
 }
 
-static void drawBoard(const BoardView &b, std::optional<Pos> last, std::optional<Pos> cursor)
+static void drawBoard(const ABoardView &b, std::optional<Pos> last, std::optional<Pos> cursor)
 {
 	clearScreen();
 	const int N = BOARD_SIZE;

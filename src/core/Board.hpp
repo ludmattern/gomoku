@@ -1,5 +1,5 @@
 #pragma once
-#include "gomoku/BoardView.hpp"
+#include "gomoku/ABoardView.hpp"
 #include "gomoku/Types.hpp"
 #include <array>
 #include <cstdint>
@@ -9,14 +9,14 @@
 
 namespace gomoku {
 
-// Implémentation concrète de BoardView pour libgomoku_core.a
-// API publique : voir include/gomoku/BoardView.hpp
+// Implémentation concrète de ABoardView pour libgomoku_core.a
+// API publique : voir include/gomoku/ABoardView.hpp
 // Représentation métier sans dépendance UI
-class Board final : public BoardView {
+class Board final : public ABoardView {
 public:
     Board();
 
-    // ---- BoardView interface ----
+    // ---- ABoardView interface ----
     Cell at(uint8_t x, uint8_t y) const override;
     Player toPlay() const override { return currentPlayer; }
     CaptureCount capturedPairs() const override { return { blackPairs, whitePairs }; }

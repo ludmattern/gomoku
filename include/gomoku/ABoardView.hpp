@@ -5,9 +5,9 @@
 
 namespace gomoku {
 
-class BoardView {
+class ABoardView {
 public:
-    virtual ~BoardView() = default;
+    virtual ~ABoardView() = default;
 
     // Core access methods
     virtual Cell at(uint8_t x, uint8_t y) const = 0;

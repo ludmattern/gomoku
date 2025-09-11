@@ -85,7 +85,7 @@ void GameBoardRenderer::setTextures(sf::Texture& boardTexture, sf::Texture& pawn
     }
 }
 
-void GameBoardRenderer::applyBoard(const gomoku::BoardView& view)
+void GameBoardRenderer::applyBoard(const gomoku::ABoardView& view)
 {
     for (int i = 0; i < 19; ++i) {
         for (int j = 0; j < 19; ++j) {

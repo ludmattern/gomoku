@@ -52,7 +52,7 @@ TEST(capture_basic)
     CHECK(caps.first == 1); // black pairs
     CHECK(caps.second == 0);
     // captured stones removed
-    // Need access to BoardView only; ensure empties at B1 and C1
+    // Need access to ABoardView only; ensure empties at B1 and C1
     CHECK(e.board().at(1, 0) == Cell::Empty);
     CHECK(e.board().at(2, 0) == Cell::Empty);
     if (::tfx::ctx().printBoards || ::tfx::ctx().verbose) {

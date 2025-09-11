@@ -1,12 +1,12 @@
 #pragma once
-#include "gomoku/BoardView.hpp"
+#include "gomoku/ABoardView.hpp"
 #include "gomoku/Notation.hpp"
 #include <iostream>
 #include <optional>
 
 namespace testutil {
 
-inline void printBoard(const gomoku::BoardView& b, std::optional<gomoku::Pos> last = {})
+inline void printBoard(const gomoku::ABoardView& b, std::optional<gomoku::Pos> last = {})
 {
     using namespace gomoku;
     auto& n = BOARD_SIZE;

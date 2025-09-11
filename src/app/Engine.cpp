@@ -20,7 +20,7 @@ Engine::Engine(const EngineConfig& cfg)
 
 Engine::~Engine() = default;
 
-const BoardView& Engine::board() const { return self->board; }
+const ABoardView& Engine::board() const { return self->board; }
 
 void Engine::reset() { self->board.reset(); }
 

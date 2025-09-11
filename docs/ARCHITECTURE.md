@@ -8,7 +8,7 @@ This document explains the project structure and how to use the different compon
 📂 include/                 # Public headers (API)
 ├── 📂 gomoku/             # Core game logic (no GUI dependencies)
 │   ├── Types.hpp          # Basic types and enums
-│   ├── BoardView.hpp      # Abstract board interface
+│   ├── ABoardView.hpp      # Abstract board interface
 │   ├── Engine.hpp         # AI engine interface
 │   ├── GameSession.hpp    # Game session management
 │   └── Notation.hpp       # Game notation system
@@ -59,7 +59,7 @@ This document explains the project structure and how to use the different compon
 ### For Custom Integration
 ```cpp
 // Core logic only
-#include "gomoku/BoardView.hpp"  
+#include "gomoku/ABoardView.hpp"
 #include "gomoku/Engine.hpp"
 
 // Add your own rendering/UI
