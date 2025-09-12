@@ -2,6 +2,8 @@
 #include "scene/AScene.hpp"
 #include "ui/Button.hpp"
 
+namespace gomoku::scene {
+
 class GameSelectScene : public AScene {
 public:
     explicit GameSelectScene(Context& ctx);
@@ -12,11 +14,13 @@ public:
     bool handleInput(sf::Event& event) override;
 
 private:
-    void onPlayerVsPlayerClicked(void);
-    void onPlayerVsBotClicked(void);
-    void onBackClicked(void);
+    void onPlayerVsPlayerClicked();
+    void onPlayerVsBotClicked();
+    void onBackClicked();
 
-    Button _playerVsPlayerButton;
-    Button _playerVsBotButton;
-    Button _backButton;
+    gomoku::ui::Button playerVsPlayerButton_;
+    gomoku::ui::Button playerVsBotButton_;
+    gomoku::ui::Button backButton_;
 };
+
+} // namespace gomoku::scene

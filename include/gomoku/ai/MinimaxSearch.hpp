@@ -1,6 +1,6 @@
 #pragma once
-#include "gomoku/SearchStats.hpp"
-#include "gomoku/Types.hpp"
+#include "gomoku/ai/SearchStats.hpp"
+#include "gomoku/core/Types.hpp"
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -20,9 +20,9 @@ struct SearchConfig {
     unsigned long long nodeCap = 0; // 0 = illimité (contrôle strict par temps)
 };
 
-class Search {
+class MinimaxSearch {
 public:
-    explicit Search(const SearchConfig& cfg)
+    explicit MinimaxSearch(const SearchConfig& cfg)
         : cfg(cfg)
     {
     }

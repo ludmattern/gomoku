@@ -1,5 +1,7 @@
 #pragma once
+#include <array>
 #include <cstdint>
+#include <ctime>
 #include <iosfwd>
 #include <optional>
 #include <string>
@@ -127,7 +129,23 @@ enum class GameStatus {
     Draw // Game ended in a draw
 };
 
-// I/O operators for debugging (implemented in src/app/Types.cpp)
+/// @brief Complete game state for serialization/persistence
+struct GameState {
+    std::array<Cell, BOARD_SIZE * BOARD_SIZE> board;
+    std::vector<Move> moveHistory;
+    Player currentPlayer = Player::Black;
+    CaptureCount captures;
+    GameStatus status = GameStatus::Ongoing;
+    RuleSet rules;
+
+    // Helper to create from current game
+    static GameState fromBoard(const class IBoardView& boardView, const std::vector<Move>& history, const RuleSet& gameRules);
+};
+
+/// @brief Type alias for Position (more semantic for some contexts)
+using Position = Pos;
+
+// I/O operators for debugging (implemented in src/application/Types.cpp)
 std::ostream& operator<<(std::ostream& os, Player p);
 std::ostream& operator<<(std::ostream& os, Cell c);
 std::ostream& operator<<(std::ostream& os, const Pos& pos);

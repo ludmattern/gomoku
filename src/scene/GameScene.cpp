@@ -1,80 +1,81 @@
 #include "scene/GameScene.hpp"
-#include "scene/MainMenu.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 
+namespace gomoku::scene {
+
 GameScene::GameScene(Context& context, bool vsAi)
     : AScene(context)
-    , _vsAi(vsAi)
-    , _gameSession(gomoku::GameSession())
+    , vsAi_(vsAi)
+    , gameSession_(gomoku::SessionController())
 {
     // Initialisation du bouton Back
-    _backButton.setPosition({ 100, 820 });
-    _backButton.setSize({ 300, 70 });
-    if (_context.resourceManager && _context.resourceManager->hasTexture("back_button"))
-        _backButton.setTexture(&_context.resourceManager->getTexture("back_button"));
-    _backButton.setScale(1.0f);
-    _backButton.setCallback([this]() { onBackClicked(); });
+    backButton_.setPosition({ 100, 820 });
+    backButton_.setSize({ 300, 70 });
+    if (context_.resourceManager && context_.resourceManager->hasTexture("back_button"))
+        backButton_.setTexture(&context_.resourceManager->getTexture("back_button"));
+    backButton_.setScale(1.0f);
+    backButton_.setCallback([this]() { onBackClicked(); });
 
     // Initialisation du renderer de plateau
-    if (_context.resourceManager) {
-        _boardRenderer.setTextures(
-            _context.resourceManager->getTexture("board"),
-            _context.resourceManager->getTexture("pawn1"),
-            _context.resourceManager->getTexture("pawn2"));
+    if (context_.resourceManager) {
+        boardRenderer_.setTextures(
+            context_.resourceManager->getTexture("board"),
+            context_.resourceManager->getTexture("pawn1"),
+            context_.resourceManager->getTexture("pawn2"));
     }
 
-    _rules = gomoku::RuleSet();
+    rules_ = gomoku::RuleSet();
 
     // Configure controllers according to mode
-    if (_vsAi) {
-        // Default GameSession ctor is Black:Human, White:AI; keep as is for now
-        _gameSession.setController(gomoku::Player::Black, gomoku::Controller::Human);
-        _gameSession.setController(gomoku::Player::White, gomoku::Controller::AI);
+    if (vsAi_) {
+        // Default SessionController ctor is Black:Human, White:AI; keep as is for now
+        gameSession_.setController(gomoku::Player::Black, gomoku::Controller::Human);
+        gameSession_.setController(gomoku::Player::White, gomoku::Controller::AI);
     } else {
-        _gameSession.setController(gomoku::Player::Black, gomoku::Controller::Human);
-        _gameSession.setController(gomoku::Player::White, gomoku::Controller::Human);
+        gameSession_.setController(gomoku::Player::Black, gomoku::Controller::Human);
+        gameSession_.setController(gomoku::Player::White, gomoku::Controller::Human);
     }
 
-    // Initial board sync
-    auto snap = _gameSession.snapshot();
-    const_cast<GameBoardRenderer&>(_boardRenderer).applyBoard(*snap.view);
+    // Initial board binding (renderer now reads directly from IBoardView)
+    {
+        auto snap = gameSession_.snapshot();
+        const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setBoardView(snap.view);
+    }
 
     // HUD setup (lazy font load)
-    _fontOk = _font.loadFromFile("assets/ui/DejaVuSans.ttf");
-    if (_fontOk) {
-        _hudText.setFont(_font);
-        _hudText.setCharacterSize(20);
-        _hudText.setFillColor(sf::Color::White);
-        _hudText.setPosition(20.f, 20.f);
-        _msgText.setFont(_font);
-        _msgText.setCharacterSize(20);
-        _msgText.setFillColor(sf::Color(255, 80, 80));
-        _msgText.setPosition(20.f, 48.f);
+    fontOk_ = font_.loadFromFile("assets/ui/DejaVuSans.ttf");
+    if (fontOk_) {
+        hudText_.setFont(font_);
+        hudText_.setCharacterSize(20);
+        hudText_.setFillColor(sf::Color::White);
+        hudText_.setPosition(20.f, 20.f);
+        msgText_.setFont(font_);
+        msgText_.setCharacterSize(20);
+        msgText_.setFillColor(sf::Color(255, 80, 80));
+        msgText_.setPosition(20.f, 48.f);
     }
 }
 
-GameScene::~GameScene(void)
-{
-}
+GameScene::~GameScene() = default;
 
 bool GameScene::handleInput(sf::Event& event)
 {
-    if (_context.window && _backButton.handleInput(event, *_context.window))
+    if (context_.window && backButton_.handleInput(event, *context_.window))
         return true;
 
     // Prévisualisation temporairement désactivée pour debug
 
     // Placement des pions sur clic souris
-    if (_context.window && event.type == sf::Event::MouseButtonPressed) {
+    if (context_.window && event.type == sf::Event::MouseButtonPressed) {
         auto btn = event.mouseButton.button;
         if (btn == sf::Mouse::Left || btn == sf::Mouse::Right) {
             // Allow UI clicks, but ignore board placement while AI is thinking or during cooldown
-            if (_aiThinking || _pendingAi || (_blockBoardClicksUntil > sf::Time::Zero && _inputClock.getElapsedTime() < _blockBoardClicksUntil)) {
+            if (aiThinking_ || pendingAi_ || (blockBoardClicksUntil_ > sf::Time::Zero && inputClock_.getElapsedTime() < blockBoardClicksUntil_)) {
                 return true; // consume to avoid buffering a move
             }
-            const auto size = _context.window->getSize();
+            const auto size = context_.window->getSize();
             const float centerX = static_cast<float>(size.x) * 0.5f;
             const float centerY = static_cast<float>(size.y) * 0.5f;
 
@@ -84,7 +85,7 @@ bool GameScene::handleInput(sf::Event& event)
             const float tileW = std::min(size.x * 0.8f / 18.f, size.y * 0.8f * 2.f / 18.f);
             const float tileH = tileW * 0.5f;
 
-            sf::Vector2f mp = _context.window->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+            sf::Vector2f mp = context_.window->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
             const float X = mp.x - centerX;
             const float Y = mp.y - centerY;
 
@@ -109,33 +110,33 @@ bool GameScene::handleInput(sf::Event& event)
             // if ((dx * dx + dy * dy) <= (maxDist * maxDist))
             // {
             // 	if (btn == sf::Mouse::Left)
-            // 		const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player1);
+            // 		const_cast<GameBoardRenderer&>(boardRenderer_).updateCell(i, j, CellState::Player1);
             // 	else if (btn == sf::Mouse::Right)
-            // 		const_cast<GameBoardRenderer&>(_boardRenderer).updateCell(i, j, CellState::Player2);
+            // 		const_cast<GameBoardRenderer&>(boardRenderer_).updateCell(i, j, CellState::Player2);
             // }
             if ((dx * dx + dy * dy) <= (maxDist * maxDist)) {
                 if (btn == sf::Mouse::Left) {
                     // If it's human's turn, try to play
-                    auto before = _gameSession.snapshot();
-                    if (_gameSession.controller(before.toPlay) == gomoku::Controller::Human) {
-                        auto result = _gameSession.playHuman(gomoku::Pos { (uint8_t)i, (uint8_t)j });
+                    auto before = gameSession_.snapshot();
+                    if (gameSession_.controller(before.toPlay) == gomoku::Controller::Human) {
+                        auto result = gameSession_.playHuman(gomoku::Pos { (uint8_t)i, (uint8_t)j });
                         if (result.ok) {
-                            auto snap1 = _gameSession.snapshot();
-                            const_cast<GameBoardRenderer&>(_boardRenderer).applyBoard(*snap1.view);
+                            auto snap1 = gameSession_.snapshot();
+                            const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setBoardView(snap1.view);
                             // Check end of game
                             if (snap1.status != gomoku::GameStatus::Ongoing)
                                 return true;
                             // If vs AI and AI to play, schedule it with a one-frame delay
-                            if (_vsAi && _gameSession.controller(snap1.toPlay) == gomoku::Controller::AI) {
-                                _pendingAi = true;
-                                _framePresented = false; // wait for next render() before starting AI
+                            if (vsAi_ && gameSession_.controller(snap1.toPlay) == gomoku::Controller::AI) {
+                                pendingAi_ = true;
+                                framePresented_ = false; // wait for next render() before starting AI
                             }
                         } else {
                             // Show reason why illegal
-                            _illegalMsg = result.why;
-                            if (_fontOk) {
-                                _msgText.setString(_illegalMsg);
-                                _illegalClock.restart();
+                            illegalMsg_ = result.why;
+                            if (fontOk_) {
+                                msgText_.setString(illegalMsg_);
+                                illegalClock_.restart();
                             }
                         }
                     }
@@ -149,48 +150,48 @@ bool GameScene::handleInput(sf::Event& event)
 
 void GameScene::update(sf::Time& deltaTime)
 {
-    _backButton.update(deltaTime);
+    backButton_.update(deltaTime);
 
     // Run pending AI move only after at least one frame has been presented
-    if (_pendingAi && _framePresented) {
-        _pendingAi = false;
-        _aiThinking = true;
+    if (pendingAi_ && framePresented_) {
+        pendingAi_ = false;
+        aiThinking_ = true;
         auto t0 = std::chrono::steady_clock::now();
-        auto aiResult = _gameSession.playAI(_aiBudgetMs);
+        auto aiResult = gameSession_.playAI(aiBudgetMs_);
         auto t1 = std::chrono::steady_clock::now();
-        _lastAiMs = (int)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-        auto snap = _gameSession.snapshot();
-        const_cast<GameBoardRenderer&>(_boardRenderer).applyBoard(*snap.view);
-        _aiThinking = false;
+        lastAiMs_ = (int)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        auto snap = gameSession_.snapshot();
+        const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setBoardView(snap.view);
+        aiThinking_ = false;
         // Start short cooldown to swallow any clicks pressed during AI thinking
-        _inputClock.restart();
-        _blockBoardClicksUntil = sf::milliseconds(120);
+        inputClock_.restart();
+        blockBoardClicksUntil_ = sf::milliseconds(120);
     }
 }
 
 void GameScene::render(sf::RenderTarget& target) const
 {
     // Fond de jeu
-    if (_context.resourceManager && _context.resourceManager->hasTexture("gameBackground")) {
-        sf::Sprite bg(_context.resourceManager->getTexture("gameBackground"));
+    if (context_.resourceManager && context_.resourceManager->hasTexture("gameBackground")) {
+        sf::Sprite bg(context_.resourceManager->getTexture("gameBackground"));
         bg.setScale(sf::Vector2f(1.0f, 1.0f));
         target.draw(bg);
     }
     // Plateau (cible est la fenêtre; cast suffisant ici)
-    const_cast<GameBoardRenderer&>(_boardRenderer).render(static_cast<sf::RenderWindow&>(target));
+    const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).render(static_cast<sf::RenderWindow&>(target));
     // UI
-    _backButton.render(target);
+    backButton_.render(target);
 
     // HUD: toPlay, captures, last move, AI time
-    auto snap = _gameSession.snapshot();
-    if (_fontOk) {
+    auto snap = gameSession_.snapshot();
+    if (fontOk_) {
         char buf[128];
         auto caps = snap.captures;
         std::snprintf(buf, sizeof(buf), "To play: %s   Captures ●:%d ○:%d%s%s%s",
             (snap.toPlay == gomoku::Player::Black ? "● Black" : "○ White"),
             caps.first, caps.second,
-            (_lastAiMs >= 0 ? "   |  AI:" : ""),
-            (_lastAiMs >= 0 ? " ms" : ""),
+            (lastAiMs_ >= 0 ? "   |  AI:" : ""),
+            (lastAiMs_ >= 0 ? " ms" : ""),
             "");
         std::string line(buf);
         if (snap.lastMove) {
@@ -199,24 +200,24 @@ void GameScene::render(sf::RenderTarget& target) const
             line += ",";
             line += std::to_string((int)snap.lastMove->y);
         }
-        if (_lastAiMs >= 0) {
+        if (lastAiMs_ >= 0) {
             line += "   |  AI time: ";
-            line += std::to_string(_lastAiMs);
+            line += std::to_string(lastAiMs_);
             line += "ms";
         }
-        _hudText.setString(line);
-        target.draw(_hudText);
+        hudText_.setString(line);
+        target.draw(hudText_);
     }
 
     // Illegal message (timed)
-    if (_fontOk && !_illegalMsg.empty() && _illegalClock.getElapsedTime().asSeconds() < 2.0f) {
-        target.draw(_msgText);
+    if (fontOk_ && !illegalMsg_.empty() && illegalClock_.getElapsedTime().asSeconds() < 2.0f) {
+        target.draw(msgText_);
     }
 
     // Endgame banner
-    if (snap.status != gomoku::GameStatus::Ongoing && _fontOk) {
+    if (snap.status != gomoku::GameStatus::Ongoing && fontOk_) {
         sf::Text endTxt;
-        endTxt.setFont(_font);
+        endTxt.setFont(font_);
         endTxt.setCharacterSize(36);
         endTxt.setFillColor(sf::Color::Yellow);
         std::string msg = (snap.status == gomoku::GameStatus::Draw) ? "Draw" : "Victory";
@@ -226,11 +227,13 @@ void GameScene::render(sf::RenderTarget& target) const
     }
 
     // Mark that at least one frame has been presented; allows AI to start next update
-    _framePresented = true;
+    framePresented_ = true;
 }
 
-void GameScene::onBackClicked(void)
+void GameScene::onBackClicked()
 {
-    _context.inGame = false;
-    _context.showMainMenu = true;
+    context_.inGame = false;
+    context_.showMainMenu = true;
 }
+
+} // namespace gomoku::scene

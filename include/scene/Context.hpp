@@ -3,15 +3,21 @@
 #include "gui/ResourceManager.hpp"
 #include <SFML/Graphics.hpp>
 
+namespace gomoku::gui {
 class GameBoardRenderer;
+}
+
+namespace gomoku::scene {
 
 struct Context {
     sf::RenderWindow* window = nullptr;
-    ResourceManager* resourceManager = nullptr;
+    gomoku::gui::ResourceManager* resourceManager = nullptr;
     bool shouldQuit = false;
     bool inGame = false;
     bool showGameSelectMenu = false;
     bool showMainMenu = false;
     bool vsAi = false;
-    GameBoardRenderer* boardRenderer = nullptr;
+    gomoku::gui::GameBoardRenderer* boardRenderer = nullptr;
 };
+
+} // namespace gomoku::scene

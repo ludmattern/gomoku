@@ -1,8 +1,8 @@
 #include "gui/GameWindow.hpp"
 
-int main(void)
+int main()
 {
-    GameWindow gameWindow;
+    gomoku::gui::GameWindow gameWindow;
     gameWindow.run();
-    return (0);
+    return 0;
 }

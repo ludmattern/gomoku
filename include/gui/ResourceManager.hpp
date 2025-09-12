@@ -3,19 +3,23 @@
 #include <string>
 #include <unordered_map>
 
+namespace gomoku::gui {
+
 class ResourceManager {
 public:
-    ResourceManager(std::string packagePath);
-    ~ResourceManager(void);
+    explicit ResourceManager(std::string packagePath);
+    ~ResourceManager();
 
-    bool init(void);
-    void cleanup(void);
+    bool init();
+    void cleanup();
 
     sf::Texture& getTexture(const std::string& name);
     bool loadTexture(const std::string& name, const std::string& path);
     bool hasTexture(const std::string& name) const;
 
 private:
-    std::unordered_map<std::string, sf::Texture> _textures;
-    std::string TEXTURE_PATH;
+    std::unordered_map<std::string, sf::Texture> textures_;
+    std::string texturePath_;
 };
+
+} // namespace gomoku::gui

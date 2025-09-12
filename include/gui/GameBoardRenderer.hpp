@@ -1,39 +1,31 @@
-#ifndef GAME_BOARD_RENDERER_HPP
-#define GAME_BOARD_RENDERER_HPP
+#pragma once
 
-#include "gomoku/ABoardView.hpp"
+#include "gomoku/interfaces/IBoardView.hpp"
 #include <SFML/Graphics.hpp>
+#include <optional>
 
-enum class CellState {
-    Empty = 0,
-    Player1 = 1,
-    Player2 = 2
-};
+namespace gomoku::gui {
 
 class GameBoardRenderer {
 public:
-    GameBoardRenderer(void);
-    ~GameBoardRenderer(void);
+    GameBoardRenderer();
+    ~GameBoardRenderer();
 
-    void init(void);
-    void cleanup(void);
-    void render(sf::RenderWindow& window);
-    void updateCell(int x, int y, CellState state);
+    void init();
+    void cleanup();
+
+    void render(sf::RenderWindow& window) const;
 
     void setTextures(sf::Texture& boardTexture, sf::Texture& pawn1Texture, sf::Texture& pawn2Texture);
+    void setBoardView(const gomoku::IBoardView* view) { boardView_ = view; }
 
-    // Conversion isométrique centrée
-    sf::Vector2f isoToScreen(int i, int j, float tileW, float tileH, float centerX, float centerY);
-
-    // Synchronise l'état interne avec un ABoardView (source de vérité)
-    void applyBoard(const gomoku::ABoardView& view);
+    static sf::Vector2f isoToScreen(int i, int j, float tileW, float tileH, float centerX, float centerY);
 
 private:
-    CellState _board[19][19];
-
-    sf::Sprite* _boardSprite;
-    sf::Sprite* _pawn1Sprite;
-    sf::Sprite* _pawn2Sprite;
+    const gomoku::IBoardView* boardView_ = nullptr; // not owned
+    sf::Sprite* boardSprite_ = nullptr;
+    sf::Sprite* pawn1Sprite_ = nullptr;
+    sf::Sprite* pawn2Sprite_ = nullptr;
 };
 
-#endif
+} // namespace gomoku::gui

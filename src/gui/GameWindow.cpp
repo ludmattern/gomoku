@@ -1,190 +1,156 @@
 #include "gui/GameWindow.hpp"
-#include "scene/Context.hpp"
 #include "scene/GameScene.hpp"
 #include "scene/GameSelect.hpp"
 #include "scene/MainMenu.hpp"
 #include <cmath>
 #include <iostream>
 
-GameWindow::GameWindow(void)
-    : _resourceManager("default")
-    , _backgroundSprite(nullptr)
-{
-    _isRunning = false;
-    _cleaned = false;
-    init();
-}
+namespace gomoku::gui {
 
-GameWindow::~GameWindow(void)
-{
-}
+using gomoku::scene::Context;
+using gomoku::scene::GameScene;
+using gomoku::scene::GameSelectScene;
+using gomoku::scene::MainMenu;
 
-bool GameWindow::isRunning(void)
-{
-    return _isRunning;
-}
+GameWindow::GameWindow() { init(); }
+GameWindow::~GameWindow() = default;
 
-void GameWindow::init(void)
+bool GameWindow::isRunning() { return isRunning_; }
+
+void GameWindow::init()
 {
-    _window.create(
-        sf::VideoMode(1920, 1080),
-        "Gomoku",
-        sf::Style::Close | sf::Style::Titlebar);
-    _window.setFramerateLimit(60);
+    window_.create({ 1920, 1080 }, "Gomoku", sf::Style::Close | sf::Style::Titlebar);
+    window_.setFramerateLimit(60);
     std::cout << "[INIT] Window created" << std::endl;
 
-    _context = Context();
-    _context.window = &_window;
-    _context.resourceManager = &_resourceManager;
+    context_ = Context();
+    context_.window = &window_;
+    context_.resourceManager = &resourceManager_;
 
-    if (!_resourceManager.init()) {
+    if (!resourceManager_.init()) {
         std::cerr << "Failed to initialize ResourceManager" << std::endl;
         return;
     }
     std::cout << "[INIT] ResourceManager ready" << std::endl;
 
-    // Background
-    _backgroundSprite = new sf::Sprite(_resourceManager.getTexture("background"));
-    // Échelle pour couvrir toute la fenêtre
-    _backgroundSprite->setScale(sf::Vector2f(1.0f, 1.0f));
+    backgroundSprite_ = new sf::Sprite(resourceManager_.getTexture("background"));
+    backgroundSprite_->setScale({ 1.f, 1.f });
     std::cout << "[INIT] Background sprite created" << std::endl;
 
-    // Shader radial
-    _introActive = _radialMask.loadFromFile("assets/shaders/radial_mask.frag", sf::Shader::Type::Fragment);
-    _introClock.restart();
-    std::cout << "[INIT] Shader loaded? " << (_introActive ? "yes" : "no") << std::endl;
+    introActive_ = radialMask_.loadFromFile("assets/shaders/radial_mask.frag", sf::Shader::Type::Fragment);
+    introClock_.restart();
+    std::cout << "[INIT] Shader loaded? " << (introActive_ ? "yes" : "no") << std::endl;
 
-    // Scène: démarrer sur le menu principal
-    _currentScene = std::make_unique<MainMenu>(_context);
-    _currentScene->onEnter();
+    currentScene_ = std::make_unique<MainMenu>(context_);
+    currentScene_->onEnter();
     std::cout << "[INIT] MainMenu created" << std::endl;
 
-    _isRunning = true;
+    isRunning_ = true;
 }
 
-void GameWindow::handleEvents(void)
+void GameWindow::handleEvents()
 {
     sf::Event event;
-    while (_window.pollEvent(event)) {
+    while (window_.pollEvent(event)) {
         if (event.type == sf::Event::Closed) {
-            _context.shouldQuit = true;
+            context_.shouldQuit = true;
             return;
         }
-        if (event.type == sf::Event::KeyPressed) {
-            if (event.key.code == sf::Keyboard::Escape) {
-                _context.shouldQuit = true;
-                return;
-            }
+        if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+            context_.shouldQuit = true;
+            return;
         }
-
-        // Tant que l'intro est active, on ignore les entrées de la scène
-        if (_introActive)
+        if (introActive_)
             continue;
-
-        if (_currentScene) {
-            _currentScene->handleInput(event);
-            if (_context.shouldQuit)
+        if (currentScene_) {
+            currentScene_->handleInput(event);
+            if (context_.shouldQuit)
                 return;
         }
     }
 }
 
-void GameWindow::cleanup(void)
+void GameWindow::cleanup()
 {
-    if (_cleaned)
+    if (cleaned_)
         return;
-    _cleaned = true;
-    _isRunning = false;
-
-    if (_currentScene) {
-        _currentScene->onExit();
-        _currentScene.reset();
+    cleaned_ = true;
+    isRunning_ = false;
+    if (currentScene_) {
+        currentScene_->onExit();
+        currentScene_.reset();
     }
-
-    delete _backgroundSprite;
-    _backgroundSprite = nullptr;
-
-    _resourceManager.cleanup();
-
-    if (_window.isOpen())
-        _window.close();
+    delete backgroundSprite_;
+    backgroundSprite_ = nullptr;
+    resourceManager_.cleanup();
+    if (window_.isOpen())
+        window_.close();
 }
 
-void GameWindow::render(void)
+void GameWindow::render()
 {
-    if (!_window.isOpen())
+    if (!window_.isOpen())
         return;
-    _window.clear(sf::Color::Black);
-
-    if (_backgroundSprite) {
-        if (_introActive) {
-            const float delay = 1.0f;
+    window_.clear(sf::Color::Black);
+    if (backgroundSprite_) {
+        if (introActive_) {
+            const float delay = 1.f;
             const float duration = 1.2f;
-            const auto win = _window.getSize();
-            float elapsed = _introClock.getElapsedTime().asSeconds();
+            auto win = window_.getSize();
+            float elapsed = introClock_.getElapsedTime().asSeconds();
             if (elapsed >= delay) {
                 float t = std::min((elapsed - delay) / duration, 1.f);
                 t = t * t * (3.f - 2.f * t);
                 float Rmax = std::hypot(win.x * 0.5f, win.y * 0.5f);
-                _radialMask.setUniform("uCenter", sf::Glsl::Vec2(win.x * 0.5f, win.y * 0.5f));
-                _radialMask.setUniform("uRadius", t * Rmax);
-                _window.draw(*_backgroundSprite, &_radialMask);
+                radialMask_.setUniform("uCenter", sf::Glsl::Vec2(win.x * 0.5f, win.y * 0.5f));
+                radialMask_.setUniform("uRadius", t * Rmax);
+                window_.draw(*backgroundSprite_, &radialMask_);
                 if (t >= 1.f)
-                    _introActive = false;
+                    introActive_ = false;
             }
         } else {
-            _window.draw(*_backgroundSprite);
+            window_.draw(*backgroundSprite_);
         }
     }
-
-    if (!_introActive) {
-        if (_currentScene) {
-            _currentScene->render(_window);
-        }
-    }
-
-    _window.display();
+    if (!introActive_ && currentScene_)
+        currentScene_->render(window_);
+    window_.display();
 }
 
-void GameWindow::run(void)
+void GameWindow::run()
 {
-    while (_isRunning) {
-        _deltaTime = _clock.restart();
+    while (isRunning_) {
+        deltaTime_ = clock_.restart();
         handleEvents();
-        if (!_isRunning)
+        if (!isRunning_)
             break;
-        if (_context.inGame) {
-            if (!_context.showGameSelectMenu && !_context.showMainMenu) {
-                if (_currentScene)
-                    _currentScene->onExit();
-                std::cout << "[RUN] switch -> GameScene (vsAi=" << (_context.vsAi ? "true" : "false") << ")" << std::endl;
-                _currentScene = std::make_unique<GameScene>(_context, _context.vsAi);
-                _context.inGame = false;
-            }
+        if (context_.inGame && !context_.showGameSelectMenu && !context_.showMainMenu) {
+            if (currentScene_)
+                currentScene_->onExit();
+            std::cout << "[RUN] switch -> GameScene (vsAi=" << (context_.vsAi ? "true" : "false") << ")" << std::endl;
+            currentScene_ = std::make_unique<GameScene>(context_, context_.vsAi);
+            context_.inGame = false;
         }
-        if (_context.shouldQuit) {
+        if (context_.shouldQuit) {
             cleanup();
             std::exit(0);
-        } else if (_context.showGameSelectMenu) {
-            if (!_context.inGame && !_context.showMainMenu) {
-                if (_currentScene)
-                    _currentScene->onExit();
-                std::cout << "[RUN] switch -> GameSelect" << std::endl;
-                _currentScene = std::make_unique<GameSelectScene>(_context);
-                _context.showGameSelectMenu = false;
-            }
-        } else if (_context.showMainMenu) {
-            if (!_context.inGame && !_context.showGameSelectMenu) {
-                if (_currentScene)
-                    _currentScene->onExit();
-                std::cout << "[RUN] switch -> MainMenu" << std::endl;
-                _currentScene = std::make_unique<MainMenu>(_context);
-                _context.showMainMenu = false;
-            }
+        } else if (context_.showGameSelectMenu && !context_.inGame && !context_.showMainMenu) {
+            if (currentScene_)
+                currentScene_->onExit();
+            std::cout << "[RUN] switch -> GameSelect" << std::endl;
+            currentScene_ = std::make_unique<GameSelectScene>(context_);
+            context_.showGameSelectMenu = false;
+        } else if (context_.showMainMenu && !context_.inGame && !context_.showGameSelectMenu) {
+            if (currentScene_)
+                currentScene_->onExit();
+            std::cout << "[RUN] switch -> MainMenu" << std::endl;
+            currentScene_ = std::make_unique<MainMenu>(context_);
+            context_.showMainMenu = false;
         }
-        if (_currentScene) {
-            _currentScene->update(_deltaTime);
-        }
+        if (currentScene_)
+            currentScene_->update(deltaTime_);
         render();
     }
 }
+
+} // namespace gomoku::gui

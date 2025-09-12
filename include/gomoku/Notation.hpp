@@ -1,5 +1,5 @@
 #pragma once
-#include "gomoku/Types.hpp"
+#include "gomoku/core/Types.hpp"
 #include <optional>
 #include <string>
 

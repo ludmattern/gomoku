@@ -1,6 +1,6 @@
 #pragma once
-#include "gomoku/ABoardView.hpp"
-#include "gomoku/Types.hpp"
+#include "gomoku/core/Types.hpp"
+#include "gomoku/interfaces/IBoardView.hpp"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -9,14 +9,14 @@
 
 namespace gomoku {
 
-// Implémentation concrète de ABoardView pour libgomoku_core.a
-// API publique : voir include/gomoku/ABoardView.hpp
+// Implémentation concrète de IBoardView pour libgomoku_core.a
+// API publique : voir include/gomoku/IBoardView.hpp
 // Représentation métier sans dépendance UI
-class Board final : public ABoardView {
+class Board final : public IBoardView {
 public:
     Board();
 
-    // ---- ABoardView interface ----
+    // ---- IBoardView interface ----
     Cell at(uint8_t x, uint8_t y) const override;
     Player toPlay() const override { return currentPlayer; }
     CaptureCount capturedPairs() const override { return { blackPairs, whitePairs }; }

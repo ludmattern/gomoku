@@ -1,6 +1,10 @@
 #include "scene/AScene.hpp"
 
+namespace gomoku::scene {
+
 AScene::AScene(Context& context)
-    : _context(context)
+    : context_(context)
 {
 }
+
+} // namespace gomoku::scene

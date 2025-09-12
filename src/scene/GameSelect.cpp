@@ -1,71 +1,74 @@
 #include "scene/GameSelect.hpp"
-#include "scene/MainMenu.hpp"
+
+namespace gomoku::scene {
 
 GameSelectScene::GameSelectScene(Context& ctx)
     : AScene(ctx)
 {
-    _playerVsPlayerButton.setPosition({ 111, 696 });
-    _playerVsPlayerButton.setSize({ 300, 70 });
-    if (_context.resourceManager && _context.resourceManager->hasTexture("vs_player_button"))
-        _playerVsPlayerButton.setTexture(&_context.resourceManager->getTexture("vs_player_button"));
-    _playerVsPlayerButton.setScale(1.0f);
-    _playerVsPlayerButton.setCallback([this]() { onPlayerVsPlayerClicked(); });
+    playerVsPlayerButton_.setPosition({ 111, 696 });
+    playerVsPlayerButton_.setSize({ 300, 70 });
+    if (context_.resourceManager && context_.resourceManager->hasTexture("vs_player_button"))
+        playerVsPlayerButton_.setTexture(&context_.resourceManager->getTexture("vs_player_button"));
+    playerVsPlayerButton_.setScale(1.0f);
+    playerVsPlayerButton_.setCallback([this]() { onPlayerVsPlayerClicked(); });
 
-    _playerVsBotButton.setPosition({ 693, 696 });
-    _playerVsBotButton.setSize({ 300, 70 });
-    if (_context.resourceManager && _context.resourceManager->hasTexture("vs_ai_button"))
-        _playerVsBotButton.setTexture(&_context.resourceManager->getTexture("vs_ai_button"));
-    _playerVsBotButton.setScale(1.0f);
-    _playerVsBotButton.setCallback([this]() { onPlayerVsBotClicked(); });
+    playerVsBotButton_.setPosition({ 693, 696 });
+    playerVsBotButton_.setSize({ 300, 70 });
+    if (context_.resourceManager && context_.resourceManager->hasTexture("vs_ai_button"))
+        playerVsBotButton_.setTexture(&context_.resourceManager->getTexture("vs_ai_button"));
+    playerVsBotButton_.setScale(1.0f);
+    playerVsBotButton_.setCallback([this]() { onPlayerVsBotClicked(); });
 
-    _backButton.setPosition({ 1284, 695.5 });
-    _backButton.setSize({ 300, 70 });
-    if (_context.resourceManager && _context.resourceManager->hasTexture("back_button"))
-        _backButton.setTexture(&_context.resourceManager->getTexture("back_button"));
-    _backButton.setScale(1.0f);
-    _backButton.setCallback([this]() { onBackClicked(); });
+    backButton_.setPosition({ 1284, 695.5f });
+    backButton_.setSize({ 300, 70 });
+    if (context_.resourceManager && context_.resourceManager->hasTexture("back_button"))
+        backButton_.setTexture(&context_.resourceManager->getTexture("back_button"));
+    backButton_.setScale(1.0f);
+    backButton_.setCallback([this]() { onBackClicked(); });
 }
 
 void GameSelectScene::update(sf::Time& deltaTime)
 {
-    _playerVsPlayerButton.update(deltaTime);
-    _playerVsBotButton.update(deltaTime);
-    _backButton.update(deltaTime);
+    playerVsPlayerButton_.update(deltaTime);
+    playerVsBotButton_.update(deltaTime);
+    backButton_.update(deltaTime);
 }
 
 void GameSelectScene::render(sf::RenderTarget& target) const
 {
-    _playerVsPlayerButton.render(target);
-    _playerVsBotButton.render(target);
-    _backButton.render(target);
+    playerVsPlayerButton_.render(target);
+    playerVsBotButton_.render(target);
+    backButton_.render(target);
 }
 
 bool GameSelectScene::handleInput(sf::Event& event)
 {
-    if (_context.window && _playerVsPlayerButton.handleInput(event, *_context.window))
+    if (context_.window && playerVsPlayerButton_.handleInput(event, *context_.window))
         return true;
-    if (_context.window && _playerVsBotButton.handleInput(event, *_context.window))
+    if (context_.window && playerVsBotButton_.handleInput(event, *context_.window))
         return true;
-    if (_context.window && _backButton.handleInput(event, *_context.window))
+    if (context_.window && backButton_.handleInput(event, *context_.window))
         return true;
     return false;
 }
 
 void GameSelectScene::onPlayerVsPlayerClicked()
 {
-    _context.vsAi = false;
-    _context.inGame = true;
+    context_.vsAi = false;
+    context_.inGame = true;
 }
 
 void GameSelectScene::onPlayerVsBotClicked()
 {
-    _context.vsAi = true;
-    _context.inGame = true;
+    context_.vsAi = true;
+    context_.inGame = true;
 }
 
 void GameSelectScene::onBackClicked()
 {
-    _context.showGameSelectMenu = false;
-    _context.inGame = false;
-    _context.showMainMenu = true;
+    context_.showGameSelectMenu = false;
+    context_.inGame = false;
+    context_.showMainMenu = true;
 }
+
+} // namespace gomoku::scene

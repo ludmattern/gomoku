@@ -1,45 +1,46 @@
 #pragma once
 
+#include "gomoku/SessionController.hpp"
+#include "gomoku/core/Types.hpp"
 #include "gui/GameBoardRenderer.hpp"
-#include "gomoku/GameSession.hpp"
-#include "gomoku/Types.hpp"
 #include "scene/AScene.hpp"
 #include "ui/Button.hpp"
 #include <SFML/Graphics.hpp>
 #include <string>
 
+namespace gomoku::scene {
+
 class GameScene : public AScene {
 public:
-    explicit GameScene(Context& context, bool vsAi);
-    ~GameScene(void);
+    GameScene(Context& context, bool vsAi);
+    ~GameScene();
 
     bool handleInput(sf::Event& event) override;
     void update(sf::Time& deltaTime) override;
     void render(sf::RenderTarget& target) const override;
 
 private:
-    void onBackClicked(void);
+    void onBackClicked();
 
-    bool _vsAi;
-    Button _backButton;
-    GameBoardRenderer _boardRenderer;
-    gomoku::GameSession _gameSession;
-    gomoku::RuleSet _rules;
+    bool vsAi_;
+    gomoku::ui::Button backButton_;
+    gomoku::gui::GameBoardRenderer boardRenderer_;
+    gomoku::SessionController gameSession_;
+    gomoku::RuleSet rules_;
 
-    // HUD / overlay
-    mutable sf::Font _font;
-    mutable bool _fontOk = false;
-    mutable sf::Text _hudText;
-    mutable int _lastAiMs = -1;
-    bool _pendingAi = false;
-    int _aiBudgetMs = 450;
-    mutable bool _framePresented = false; // set true by render() once a frame was displayed
-    bool _aiThinking = false; // guards input while AI is running
-    // Input guard: ignore board-placement clicks while AI is thinking and for a short time after
-    mutable sf::Clock _inputClock;
-    sf::Time _blockBoardClicksUntil {}; // default zero
-    // Illegal move message
-    std::string _illegalMsg;
-    mutable sf::Clock _illegalClock;
-    mutable sf::Text _msgText;
+    mutable sf::Font font_;
+    mutable bool fontOk_ = false;
+    mutable sf::Text hudText_;
+    mutable int lastAiMs_ = -1;
+    bool pendingAi_ = false;
+    int aiBudgetMs_ = 450;
+    mutable bool framePresented_ = false;
+    bool aiThinking_ = false;
+    mutable sf::Clock inputClock_;
+    sf::Time blockBoardClicksUntil_ {};
+    std::string illegalMsg_;
+    mutable sf::Clock illegalClock_;
+    mutable sf::Text msgText_;
 };
+
+} // namespace gomoku::scene

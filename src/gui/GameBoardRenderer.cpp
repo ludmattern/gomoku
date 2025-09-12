@@ -2,152 +2,80 @@
 #include <cmath>
 #include <iostream>
 
+namespace gomoku::gui {
+
 static constexpr int N_INTERSECTIONS = 19;
 static constexpr int CENTER_INDEX = (N_INTERSECTIONS - 1) / 2;
 
-GameBoardRenderer::GameBoardRenderer(void)
-    : _boardSprite(nullptr)
-    , _pawn1Sprite(nullptr)
-    , _pawn2Sprite(nullptr)
-{
-    init();
-}
+GameBoardRenderer::GameBoardRenderer() = default;
+GameBoardRenderer::~GameBoardRenderer() { cleanup(); }
 
-GameBoardRenderer::~GameBoardRenderer(void)
-{
-    // cleanup is safe but avoid double-delete if textures/sprites are managed elsewhere
-    cleanup();
-}
+void GameBoardRenderer::init() { /* nothing for now */ }
 
-void GameBoardRenderer::init(void)
+void GameBoardRenderer::cleanup()
 {
-    _boardSprite = _boardSprite ? _boardSprite : nullptr;
-    _pawn1Sprite = _pawn1Sprite ? _pawn1Sprite : nullptr;
-    _pawn2Sprite = _pawn2Sprite ? _pawn2Sprite : nullptr;
-    for (int i = 0; i < 19; i++) {
-        for (int j = 0; j < 19; j++) {
-            _board[i][j] = CellState::Empty;
-        }
-    }
-}
-
-void GameBoardRenderer::cleanup(void)
-{
-    if (_boardSprite)
-        delete _boardSprite;
-    if (_pawn1Sprite)
-        delete _pawn1Sprite;
-    if (_pawn2Sprite)
-        delete _pawn2Sprite;
-    _boardSprite = nullptr;
-    _pawn1Sprite = nullptr;
-    _pawn2Sprite = nullptr;
-}
-
-void GameBoardRenderer::updateCell(int x, int y, CellState state)
-{
-    if (x < 0 || x >= 19 || y < 0 || y >= 19)
-        return;
-    _board[x][y] = state;
+    delete boardSprite_;
+    delete pawn1Sprite_;
+    delete pawn2Sprite_;
+    boardSprite_ = pawn1Sprite_ = pawn2Sprite_ = nullptr;
 }
 
 sf::Vector2f GameBoardRenderer::isoToScreen(int i, int j, float tileW, float tileH, float centerX, float centerY)
 {
     const float u = static_cast<float>(i - CENTER_INDEX);
     const float v = static_cast<float>(j - CENTER_INDEX);
-    return sf::Vector2f(
-        centerX + (u - v) * (tileW * 0.5f),
-        centerY + (u + v) * (tileH * 0.5f));
+    return { centerX + (u - v) * (tileW * 0.5f), centerY + (u + v) * (tileH * 0.5f) };
 }
 
 void GameBoardRenderer::setTextures(sf::Texture& boardTexture, sf::Texture& pawn1Texture, sf::Texture& pawn2Texture)
 {
-    if (_boardSprite) {
-        delete _boardSprite;
-        _boardSprite = nullptr;
-    }
-    if (_pawn1Sprite) {
-        delete _pawn1Sprite;
-        _pawn1Sprite = nullptr;
-    }
-    if (_pawn2Sprite) {
-        delete _pawn2Sprite;
-        _pawn2Sprite = nullptr;
-    }
-
-    _boardSprite = new sf::Sprite(boardTexture);
-    _pawn1Sprite = new sf::Sprite(pawn1Texture);
-    _pawn2Sprite = new sf::Sprite(pawn2Texture);
-
-    if (!_boardSprite || !_pawn1Sprite || !_pawn2Sprite) {
+    delete boardSprite_;
+    delete pawn1Sprite_;
+    delete pawn2Sprite_;
+    boardSprite_ = new sf::Sprite(boardTexture);
+    pawn1Sprite_ = new sf::Sprite(pawn1Texture);
+    pawn2Sprite_ = new sf::Sprite(pawn2Texture);
+    if (!boardSprite_ || !pawn1Sprite_ || !pawn2Sprite_) {
         std::cerr << "Failed to set textures" << std::endl;
-        return;
     }
 }
 
-void GameBoardRenderer::applyBoard(const gomoku::ABoardView& view)
+void GameBoardRenderer::render(sf::RenderWindow& window) const
 {
-    for (int i = 0; i < 19; ++i) {
-        for (int j = 0; j < 19; ++j) {
-            auto c = view.at(i, j);
-            switch (c) {
-            case gomoku::Cell::Black:
-                _board[i][j] = CellState::Player2; // convention: Player2 = noir
-                break;
-            case gomoku::Cell::White:
-                _board[i][j] = CellState::Player1; // convention: Player1 = blanc
-                break;
-            default:
-                _board[i][j] = CellState::Empty;
-                break;
-            }
-        }
-    }
-}
-
-void GameBoardRenderer::render(sf::RenderWindow& window)
-{
-    // Taille fenêtre et centre
     const auto size = window.getSize();
     const float centerX = static_cast<float>(size.x) * 0.5f;
     const float centerY = static_cast<float>(size.y) * 0.5f;
-
-    // Vraie isométrie: tileH = tileW / 2
     const float tileW = std::min(size.x * 0.8f / 18.f, size.y * 0.8f * 2.f / 18.f);
     const float tileH = tileW * 0.5f;
 
-    if (_boardSprite) {
-        _boardSprite->setPosition(sf::Vector2f(6, 5));
-        _boardSprite->setScale(sf::Vector2f(1.0f, 1.0f)); // Pas de redimensionnement
-        window.draw(*_boardSprite);
+    if (boardSprite_) {
+        boardSprite_->setPosition({ 6.f, 5.f });
+        boardSprite_->setScale({ 1.f, 1.f });
+        window.draw(*boardSprite_);
     }
+    if (!boardView_)
+        return;
 
-    // Pierres aux intersections
     for (int i = 0; i < N_INTERSECTIONS; ++i) {
         for (int j = 0; j < N_INTERSECTIONS; ++j) {
-            if (_board[i][j] == CellState::Empty)
+            auto c = boardView_->at(i, j);
+            if (c == gomoku::Cell::Empty)
                 continue;
-
-            const sf::Vector2f p = isoToScreen(i, j, tileW, tileH, centerX, centerY);
-
-            if (_board[i][j] == CellState::Player1 && _pawn1Sprite && _pawn1Sprite->getTexture()) {
-                float pawnSize = tileW * 0.6f;
-                float scale = pawnSize / _pawn1Sprite->getTexture()->getSize().x;
-
-                _pawn1Sprite->setPosition(sf::Vector2f(p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5));
-                _pawn1Sprite->setScale(sf::Vector2f(scale, scale));
-                window.draw(*_pawn1Sprite);
+            const auto p = isoToScreen(i, j, tileW, tileH, centerX, centerY);
+            sf::Sprite* sprite = nullptr;
+            if (c == gomoku::Cell::White)
+                sprite = pawn1Sprite_;
+            else if (c == gomoku::Cell::Black)
+                sprite = pawn2Sprite_;
+            if (!sprite || !sprite->getTexture())
                 continue;
-            }
-
-            if (_board[i][j] == CellState::Player2 && _pawn2Sprite && _pawn2Sprite->getTexture()) {
-                float pawnSize = tileW * 0.6f;
-                float scale = pawnSize / _pawn2Sprite->getTexture()->getSize().x;
-
-                _pawn2Sprite->setPosition(sf::Vector2f(p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5));
-                _pawn2Sprite->setScale(sf::Vector2f(scale, scale));
-                window.draw(*_pawn2Sprite);
-            }
+            float pawnSize = tileW * 0.6f;
+            float scale = pawnSize / sprite->getTexture()->getSize().x;
+            sprite->setPosition({ p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5.f });
+            sprite->setScale({ scale, scale });
+            window.draw(*sprite);
         }
     }
 }
+
+} // namespace gomoku::gui

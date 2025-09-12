@@ -1,43 +1,45 @@
-#ifndef GAME_WINDOW_HPP
-#define GAME_WINDOW_HPP
+#pragma once
 
-#include "GameBoardRenderer.hpp"
+#include "gui/GameBoardRenderer.hpp"
 #include "gui/ResourceManager.hpp"
 #include "scene/AScene.hpp"
 #include "scene/Context.hpp"
 #include <SFML/Graphics.hpp>
 #include <memory>
 
-class GameBoardRenderer;
+namespace gomoku::scene {
+class AScene;
+}
+
+namespace gomoku::gui {
 
 class GameWindow {
 public:
-    GameWindow(void);
-    ~GameWindow(void);
+    GameWindow();
+    ~GameWindow();
 
-    bool isRunning(void);
-    void init(void);
-    void run(void);
-    void handleEvents(void);
-    void render(void);
-    void cleanup(void);
+    bool isRunning();
+    void init();
+    void run();
+    void handleEvents();
+    void render();
+    void cleanup();
 
 private:
-    sf::RenderWindow _window;
-    bool _isRunning;
-    Context _context;
-    ResourceManager _resourceManager;
-    GameBoardRenderer _boardRenderer;
-    sf::Sprite* _backgroundSprite;
-    std::unique_ptr<AScene> _currentScene;
-    sf::Clock _clock;
-    sf::Time _deltaTime;
-    bool _cleaned;
+    sf::RenderWindow window_;
+    bool isRunning_ { false };
+    gomoku::scene::Context context_;
+    ResourceManager resourceManager_ { "default" };
+    GameBoardRenderer boardRenderer_;
+    sf::Sprite* backgroundSprite_ { nullptr };
+    std::unique_ptr<gomoku::scene::AScene> currentScene_;
+    sf::Clock clock_;
+    sf::Time deltaTime_;
+    bool cleaned_ { false };
 
-    // Animation d’intro (shader radial)
-    sf::Shader _radialMask;
-    bool _introActive = false;
-    sf::Clock _introClock;
+    sf::Shader radialMask_;
+    bool introActive_ = false;
+    sf::Clock introClock_;
 };
 
-#endif
+} // namespace gomoku::gui

@@ -1,4 +1,4 @@
-#include "Board.hpp"
+#include "gomoku/core/Board.hpp"
 #include <array>
 #include <cassert>
 #include <random>

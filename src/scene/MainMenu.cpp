@@ -1,73 +1,66 @@
 #include "scene/MainMenu.hpp"
-#include "gui/GameWindow.hpp"
 #include <iostream>
+
+namespace gomoku::scene {
 
 MainMenu::MainMenu(Context& context)
     : AScene(context)
 {
     std::cout << "[MainMenu] ctor" << std::endl;
-    // Bouton "Jouer"
-    _playButton.setPosition({ 111, 696 });
-    _playButton.setSize({ 300, 70 });
-    if (_context.resourceManager && _context.resourceManager->hasTexture("play_button")) {
-        _playButton.setTexture(&_context.resourceManager->getTexture("play_button"));
-    }
-    _playButton.setScale(1.0f);
-    _playButton.setCallback([this]() { onPlayClicked(); });
+    playButton_.setPosition({ 111, 696 });
+    playButton_.setSize({ 300, 70 });
+    if (context_.resourceManager && context_.resourceManager->hasTexture("play_button"))
+        playButton_.setTexture(&context_.resourceManager->getTexture("play_button"));
+    playButton_.setScale(1.0f);
+    playButton_.setCallback([this]() { onPlayClicked(); });
 
-    // Bouton "Paramètres"
-    _settingsButton.setPosition({ 693, 696 });
-    _settingsButton.setSize({ 300, 70 });
-    if (_context.resourceManager && _context.resourceManager->hasTexture("settings_button")) {
-        _settingsButton.setTexture(&_context.resourceManager->getTexture("settings_button"));
-    }
-    _settingsButton.setScale(1.0f);
-    _settingsButton.setCallback([this]() { onSettingsClicked(); });
+    settingsButton_.setPosition({ 693, 696 });
+    settingsButton_.setSize({ 300, 70 });
+    if (context_.resourceManager && context_.resourceManager->hasTexture("settings_button"))
+        settingsButton_.setTexture(&context_.resourceManager->getTexture("settings_button"));
+    settingsButton_.setScale(1.0f);
+    settingsButton_.setCallback([this]() { onSettingsClicked(); });
 
-    // Bouton "Quitter"
-    _exitButton.setPosition({ 1284, 695.5 });
-    _exitButton.setSize({ 300, 70 });
-    if (_context.resourceManager && _context.resourceManager->hasTexture("exit_button")) {
-        _exitButton.setTexture(&_context.resourceManager->getTexture("exit_button"));
-    }
-    _exitButton.setScale(1.0f);
-    _exitButton.setCallback([this]() { onExitClicked(); });
+    exitButton_.setPosition({ 1284, 695.5f });
+    exitButton_.setSize({ 300, 70 });
+    if (context_.resourceManager && context_.resourceManager->hasTexture("exit_button"))
+        exitButton_.setTexture(&context_.resourceManager->getTexture("exit_button"));
+    exitButton_.setScale(1.0f);
+    exitButton_.setCallback([this]() { onExitClicked(); });
 }
 
-MainMenu::~MainMenu(void)
-{
-}
+MainMenu::~MainMenu() = default;
 
 bool MainMenu::handleInput(sf::Event& event)
 {
-    return (_context.window && _playButton.handleInput(event, *_context.window)) || (_context.window && _settingsButton.handleInput(event, *_context.window)) || (_context.window && _exitButton.handleInput(event, *_context.window));
+    return (context_.window && playButton_.handleInput(event, *context_.window)) || (context_.window && settingsButton_.handleInput(event, *context_.window)) || (context_.window && exitButton_.handleInput(event, *context_.window));
 }
 
 void MainMenu::update(sf::Time& deltaTime)
 {
-    _playButton.update(deltaTime);
-    _settingsButton.update(deltaTime);
-    _exitButton.update(deltaTime);
+    playButton_.update(deltaTime);
+    settingsButton_.update(deltaTime);
+    exitButton_.update(deltaTime);
 }
 
 void MainMenu::render(sf::RenderTarget& target) const
 {
-    _playButton.render(target);
-    _settingsButton.render(target);
-    _exitButton.render(target);
+    playButton_.render(target);
+    settingsButton_.render(target);
+    exitButton_.render(target);
 }
 
-void MainMenu::onPlayClicked(void)
+void MainMenu::onPlayClicked()
 {
-    _context.inGame = false;
-    _context.showGameSelectMenu = true;
+    context_.inGame = false;
+    context_.showGameSelectMenu = true;
 }
 
-void MainMenu::onSettingsClicked(void)
+void MainMenu::onSettingsClicked() { }
+
+void MainMenu::onExitClicked()
 {
+    context_.shouldQuit = true;
 }
 
-void MainMenu::onExitClicked(void)
-{
-    _context.shouldQuit = true;
-}
+} // namespace gomoku::scene

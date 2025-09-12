@@ -39,11 +39,13 @@ CLI_BIN = bin/cli                  # CLI executable (without SFML)
 # Source groups
 CORE_SRC = \
 	$(SRC_DIR)/core/Board.cpp \
-	$(SRC_DIR)/ai/Search.cpp \
-	$(SRC_DIR)/app/Engine.cpp \
-	$(SRC_DIR)/app/GameSession.cpp \
-	$(SRC_DIR)/app/Notation.cpp \
-	$(SRC_DIR)/app/Types.cpp
+	$(SRC_DIR)/ai/MinimaxSearch.cpp \
+	$(SRC_DIR)/application/SessionController.cpp \
+	$(SRC_DIR)/application/Notation.cpp \
+	$(SRC_DIR)/application/Types.cpp \
+	$(SRC_DIR)/gomoku/application/GameService.cpp \
+	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
+	$(SRC_DIR)/gomoku/infrastructure/MemoryBoardRepository.cpp
 
 GUI_SRC = \
 	main.cpp \

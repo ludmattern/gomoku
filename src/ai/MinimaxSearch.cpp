@@ -1,5 +1,5 @@
-#include "Search.hpp"
-#include "core/Board.hpp"
+#include "gomoku/ai/MinimaxSearch.hpp"
+#include "gomoku/core/Board.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -7,7 +7,7 @@ namespace gomoku {
 
 // Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
 
-std::optional<Move> Search::bestMove(Board& board, const RuleSet& rules, SearchStats* stats)
+std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, SearchStats* stats)
 {
     if (stats)
         *stats = SearchStats {};
@@ -91,7 +91,7 @@ std::optional<Move> Search::bestMove(Board& board, const RuleSet& rules, SearchS
 }
 
 // ---------------- TT ----------------
-void Search::initTT(std::size_t bytes)
+void MinimaxSearch::initTT(std::size_t bytes)
 {
     if (!bytes)
         bytes = (16ull << 20);
@@ -105,14 +105,14 @@ void Search::initTT(std::size_t bytes)
     ttMask = pow2 - 1;
 }
 
-Search::TTEntry* Search::ttProbe(uint64_t key) const
+MinimaxSearch::TTEntry* MinimaxSearch::ttProbe(uint64_t key) const
 {
     if (tt.empty())
         return nullptr;
     return const_cast<TTEntry*>(&tt[key & ttMask]);
 }
 
-void Search::ttStore(uint64_t key, int depth, int score, TTFlag flag, const std::optional<Move>& best)
+void MinimaxSearch::ttStore(uint64_t key, int depth, int score, TTFlag flag, const std::optional<Move>& best)
 {
     if (tt.empty())
         return;
@@ -127,7 +127,7 @@ void Search::ttStore(uint64_t key, int depth, int score, TTFlag flag, const std:
 }
 
 // ---------------- Alpha-Beta ----------------
-Search::ABResult Search::alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats)
+MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats)
 {
     if (stats)
         ++stats->nodes;
@@ -252,7 +252,7 @@ Search::ABResult Search::alphabeta(Board& b, const RuleSet& rules, int depth, in
 }
 
 // ---------------- Move ordering (léger) ----------------
-std::vector<Move> Search::orderedMoves(Board& b, const RuleSet& rules, Player toPlay) const
+std::vector<Move> MinimaxSearch::orderedMoves(Board& b, const RuleSet& rules, Player toPlay) const
 {
     (void)rules;
     auto ms = b.legalMoves(toPlay, rules);
@@ -288,7 +288,7 @@ std::vector<Move> Search::orderedMoves(Board& b, const RuleSet& rules, Player to
 }
 
 // Score local rapide sans play()
-int Search::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint8_t y) const
+int MinimaxSearch::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint8_t y) const
 {
     const Cell me = (toPlay == Player::Black ? Cell::Black : Cell::White);
     const Cell opp = (me == Cell::Black ? Cell::White : Cell::Black);
@@ -357,7 +357,7 @@ int Search::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint8_t y) 
 }
 
 // ---------------- Evaluation ----------------
-int Search::evaluate(const Board& b, Player pov) const
+int MinimaxSearch::evaluate(const Board& b, Player pov) const
 {
     auto scoreSide = [&](Player p) -> int {
         int sum = 0;
@@ -383,7 +383,7 @@ int Search::evaluate(const Board& b, Player pov) const
     return me - opp;
 }
 
-int Search::evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const
+int MinimaxSearch::evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const
 {
     auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
 

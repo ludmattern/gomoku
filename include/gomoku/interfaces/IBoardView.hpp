@@ -1,13 +1,13 @@
 #pragma once
-#include "gomoku/Types.hpp"
+#include "gomoku/core/Types.hpp"
 #include <cstdint>
 #include <vector>
 
 namespace gomoku {
 
-class ABoardView {
+class IBoardView {
 public:
-    virtual ~ABoardView() = default;
+    virtual ~IBoardView() = default;
 
     // Core access methods
     virtual Cell at(uint8_t x, uint8_t y) const = 0;

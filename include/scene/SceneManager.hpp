@@ -1,13 +1,17 @@
 #pragma once
 
-#include "AScene.hpp"
+#include "scene/AScene.hpp"
 #include <memory>
+
+namespace gomoku::scene {
 
 class SceneManager {
 public:
     explicit SceneManager(Context& context)
-        : _context(context) { };
-    ~SceneManager(void) = default;
+        : context_(context)
+    {
+    }
+    ~SceneManager() = default;
 
     void changeScene(std::unique_ptr<AScene> scene);
 
@@ -17,6 +21,8 @@ public:
     void render(sf::RenderTarget& target) const;
 
 private:
-    Context& _context;
-    std::unique_ptr<AScene> _currentScene;
+    Context& context_;
+    std::unique_ptr<AScene> currentScene_;
 };
+
+} // namespace gomoku::scene
