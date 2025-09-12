@@ -9,7 +9,7 @@
 
 namespace gomoku {
 
-// Implémentation concrète de IBoardView pour libgomoku_core.a
+// Implémentation concrète de IBoardView pour libgomoku_logic.a
 // API publique : voir include/gomoku/IBoardView.hpp
 // Représentation métier sans dépendance UI
 class Board final : public IBoardView {

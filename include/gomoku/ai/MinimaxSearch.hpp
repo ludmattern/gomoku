@@ -10,7 +10,7 @@
 namespace gomoku {
 class Board;
 
-// Moteur de recherche IA interne pour libgomoku_core.a
+// Moteur de recherche IA interne pour libgomoku_logic.a
 // API publique : voir include/gomoku/Engine.hpp
 
 struct SearchConfig {

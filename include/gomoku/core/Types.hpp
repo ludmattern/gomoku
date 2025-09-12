@@ -145,7 +145,7 @@ struct GameState {
 /// @brief Type alias for Position (more semantic for some contexts)
 using Position = Pos;
 
-// I/O operators for debugging (implemented in src/application/Types.cpp)
+// I/O operators for debugging (implemented in src/core/Types.cpp)
 std::ostream& operator<<(std::ostream& os, Player p);
 std::ostream& operator<<(std::ostream& os, Cell c);
 std::ostream& operator<<(std::ostream& os, const Pos& pos);

@@ -32,17 +32,17 @@ OBJ_DIR = $(BUILD_DIR)/obj
 
 # Target names
 TARGET = bin/Gomoku                # GUI executable (SFML)
-LIB_NAME = lib/libgomoku_core.a    # static library logic/AI
+LIB_NAME = lib/libgomoku_logic.a   # static library logic/AI
 TEST_BIN = bin/tests_runner        # test binary (without SFML)
 CLI_BIN = bin/cli                  # CLI executable (without SFML)
 
 # Source groups
 CORE_SRC = \
 	$(SRC_DIR)/core/Board.cpp \
+	$(SRC_DIR)/core/Types.cpp \
 	$(SRC_DIR)/ai/MinimaxSearch.cpp \
 	$(SRC_DIR)/application/SessionController.cpp \
 	$(SRC_DIR)/application/Notation.cpp \
-	$(SRC_DIR)/application/Types.cpp \
 	$(SRC_DIR)/gomoku/application/GameService.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
 	$(SRC_DIR)/gomoku/infrastructure/MemoryBoardRepository.cpp
