@@ -1,6 +1,5 @@
 #pragma once
 #include "gomoku/core/Types.hpp"
-#include "gomoku/interfaces/IBoardRepository.hpp"
 #include "gomoku/interfaces/IGameService.hpp"
 #include "gomoku/interfaces/ISearchEngine.hpp"
 #include <memory>
@@ -23,7 +22,6 @@ class GameService : public IGameService {
 public:
     explicit GameService(
         std::unique_ptr<ISearchEngine> searchEngine = nullptr,
-        std::unique_ptr<IBoardRepository> repository = nullptr);
 
     ~GameService() override; // Defined in .cpp to avoid incomplete type issues
 
@@ -66,7 +64,6 @@ private:
 
     // Dependencies (injected)
     std::unique_ptr<ISearchEngine> searchEngine_;
-    std::unique_ptr<IBoardRepository> repository_;
 
     // Internal helpers
     void updateGameStatus();
