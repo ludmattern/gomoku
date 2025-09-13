@@ -27,6 +27,21 @@ public:
 
     std::optional<Move> bestMove(Board& board, const RuleSet& rules, SearchStats* stats);
 
+    // --- Public utility / configuration API (added) ---
+    void setTimeBudgetMs(int ms) { cfg.timeBudgetMs = ms; }
+    void setMaxDepthHint(int d) { cfg.maxDepthHint = d; }
+    void setTranspositionTableSize(std::size_t bytes)
+    {
+        cfg.ttBytes = bytes;
+        tt.resizeBytes(bytes);
+    }
+    void setNodeCap(unsigned long long cap) { cfg.nodeCap = cap; }
+
+    void clearTranspositionTable() { tt.resizeBytes(cfg.ttBytes); }
+
+    int evaluatePublic(const Board& b, Player pov) const { return evaluate(b, pov); }
+    std::vector<Move> orderedMovesPublic(Board& b, const RuleSet& rules, Player toPlay) const { return orderedMoves(b, rules, toPlay); }
+
 private:
     SearchConfig cfg {};
 
@@ -40,7 +55,7 @@ private:
 
     TranspositionTable tt;
 
-	int evaluate(const Board& b, Player pov) const;
+    int evaluate(const Board& b, Player pov) const;
     int evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const;
 
     struct ABResult {

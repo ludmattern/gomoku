@@ -1,6 +1,7 @@
 #include "gomoku/ai/MinimaxSearchEngine.hpp"
 #include "gomoku/core/Board.hpp"
 #include "gomoku/interfaces/IBoardView.hpp"
+#include <stdexcept>
 
 namespace gomoku::ai {
 
@@ -13,19 +14,19 @@ MinimaxSearchEngine::MinimaxSearchEngine(const SearchConfig& config)
 void MinimaxSearchEngine::setTimeLimit(int milliseconds)
 {
     config_.timeBudgetMs = milliseconds;
-    searchImpl_ = MinimaxSearch(config_);
+    searchImpl_.setTimeBudgetMs(milliseconds);
 }
 
 void MinimaxSearchEngine::setDepthLimit(int maxDepth)
 {
     config_.maxDepthHint = maxDepth;
-    searchImpl_ = MinimaxSearch(config_);
+    searchImpl_.setMaxDepthHint(maxDepth);
 }
 
 void MinimaxSearchEngine::setTranspositionTableSize(size_t bytes)
 {
     config_.ttBytes = bytes;
-    searchImpl_ = MinimaxSearch(config_);
+    searchImpl_.setTranspositionTableSize(bytes);
 }
 
 std::optional<Move> MinimaxSearchEngine::findBestMove(
@@ -49,40 +50,32 @@ std::optional<Move> MinimaxSearchEngine::suggestMove(
     int timeMs,
     SearchStats* stats)
 {
-    // Temporarily adjust time limit
     int oldTimeMs = config_.timeBudgetMs;
-    setTimeLimit(timeMs);
-
-    auto result = findBestMove(board, rules, stats);
-
-    // Restore original time limit
-    setTimeLimit(oldTimeMs);
-
-    return result;
+    searchImpl_.setTimeBudgetMs(timeMs);
+    config_.timeBudgetMs = timeMs;
+    auto res = findBestMove(board, rules, stats);
+    // restore
+    searchImpl_.setTimeBudgetMs(oldTimeMs);
+    config_.timeBudgetMs = oldTimeMs;
+    return res;
 }
 
 int MinimaxSearchEngine::evaluatePosition(const IBoardView& board, Player perspective) const
 {
     Board concreteBoard = boardFromView(board);
-    // This would need to be implemented in MinimaxSearch class
-    // For now, return a dummy value
-    (void)perspective; // Avoid unused parameter warning
-    return 0;
+    return searchImpl_.evaluatePublic(concreteBoard, perspective);
 }
 
 std::vector<Move> MinimaxSearchEngine::getOrderedMoves(const IBoardView& board, const RuleSet& rules) const
 {
-    // For now, just return legal moves from the current player
-    (void)board; // Avoid unused parameter warning - we'll use it when implementing properly
-    Board concreteBoard; // Create empty board for now
-    return concreteBoard.legalMoves(Player::Black, rules);
+    Board concreteBoard = boardFromView(board);
+    Player toPlay = concreteBoard.toPlay();
+    return searchImpl_.orderedMovesPublic(concreteBoard, rules, toPlay);
 }
 
 void MinimaxSearchEngine::clearTranspositionTable()
 {
-    // This would need to be implemented in MinimaxSearch class
-    // For now, recreate the search object
-    searchImpl_ = MinimaxSearch(config_);
+    searchImpl_.clearTranspositionTable();
 }
 
 SearchStats MinimaxSearchEngine::getLastSearchStats() const
@@ -93,18 +86,10 @@ SearchStats MinimaxSearchEngine::getLastSearchStats() const
 // Helper method to convert IBoardView to concrete Board
 Board MinimaxSearchEngine::boardFromView(const IBoardView& view) const
 {
-    // The IBoardView is actually a Bridge pattern wrapper
-    // In our architecture, it's always wrapping a gomoku::Board
-    // We can safely cast to the actual IBoardView and then to Board
-    const auto* realView = reinterpret_cast<const gomoku::IBoardView*>(&view);
-    const auto* concreteBoard = dynamic_cast<const Board*>(realView);
-
-    if (concreteBoard) {
-        return *concreteBoard; // Copy constructor
-    } else {
-        // Fallback: create empty board (shouldn't happen in our architecture)
-        return Board {};
+    if (auto concreteBoard = dynamic_cast<const Board*>(&view)) {
+        return *concreteBoard;
     }
+    return Board {}; // production fallback
 }
 
 } // namespace gomoku::ai
