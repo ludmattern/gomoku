@@ -204,7 +204,7 @@ int Board::applyCapturesAround(Pos p, Cell who, const RuleSet& rules, std::vecto
 }
 
 // ------------------------------------------------
-PlayResult Board::tryPlay(Move m, const RuleSet& rules)
+PlayResult Board::applyCore(Move m, const RuleSet& rules, bool record)
 {
     if (gameState != GameStatus::Ongoing) {
         return PlayResult::fail(PlayErrorCode::GameFinished, "Game already finished.");
@@ -216,8 +216,6 @@ PlayResult Board::tryPlay(Move m, const RuleSet& rules)
         return PlayResult::fail(PlayErrorCode::Occupied, "Cell not empty.");
     }
 
-    // Must-break rule: if opponent (justPlayed) currently has a breakable 5+, the side to move
-    // must capture to break it (or win by capture). Non-breaking moves are illegal.
     bool mustBreak = false;
     if (rules.allowFiveOrMore && rules.capturesEnabled) {
         Player justPlayed = opponent(currentPlayer);
@@ -228,13 +226,10 @@ PlayResult Board::tryPlay(Move m, const RuleSet& rules)
 
     bool allowDoubleThreeThisMove = false;
     if (mustBreak) {
-        // Only capturing moves can break a 5+; quickly reject otherwise
         if (!wouldCapture(m)) {
             return PlayResult::fail(PlayErrorCode::RuleViolation, "Must break opponent's five.");
         }
-        // Simulate capture effect to ensure this move actually breaks (or wins by capture)
         Board sim = *this;
-        // place the stone (ignore pattern illegality here since must-break allows capture exceptions)
         sim.cells[idx(m.pos.x, m.pos.y)] = playerToCell(m.by);
         std::vector<Pos> removedTmp;
         int gainedTmp = sim.applyCapturesAround(m.pos, playerToCell(m.by), rules, removedTmp);
@@ -250,65 +245,144 @@ PlayResult Board::tryPlay(Move m, const RuleSet& rules)
         if (!breaks) {
             return PlayResult::fail(PlayErrorCode::RuleViolation, "Must break opponent's five.");
         }
-        // This capture move is allowed even if it forms a double-three pattern
         allowDoubleThreeThisMove = true;
     }
 
-    // Double-three rule, unless allowed due to must-break capture
     if (!allowDoubleThreeThisMove && createsIllegalDoubleThree(m, rules)) {
         return PlayResult::fail(PlayErrorCode::RuleViolation, "Illegal double-three.");
     }
 
-    // Enregistrer état pour undo
+    // Préparation Undo (si record)
     UndoEntry u;
-    u.move = m;
-    u.blackPairsBefore = blackPairs;
-    u.whitePairsBefore = whitePairs;
-    u.stateBefore = gameState;
-    u.playerBefore = currentPlayer;
+    if (record) {
+        u.move = m;
+        u.blackPairsBefore = blackPairs;
+        u.whitePairsBefore = whitePairs;
+        u.stateBefore = gameState;
+        u.playerBefore = currentPlayer;
+    }
 
-    // Placer la pierre
     cells[idx(m.pos.x, m.pos.y)] = playerToCell(m.by);
-    // Zobrist: ajouter la pierre
     zobristHash ^= z_of(playerToCell(m.by), m.pos.x, m.pos.y);
 
-    // Captures (XOOX)
-    int gained = applyCapturesAround(m.pos, playerToCell(m.by), rules, u.capturedStones);
+    std::vector<Pos> capturedLocal; // utilisera u.capturedStones si record
+    auto& capVec = record ? u.capturedStones : capturedLocal;
+    int gained = applyCapturesAround(m.pos, playerToCell(m.by), rules, capVec);
     if (gained) {
         if (m.by == Player::Black)
             blackPairs += gained;
         else
             whitePairs += gained;
-        // Zobrist: retirer les capturées (couleur adverse)
         Cell oppC = (m.by == Player::Black ? Cell::White : Cell::Black);
-        for (auto rp : u.capturedStones) {
+        for (auto rp : capVec) {
             zobristHash ^= z_of(oppC, rp.x, rp.y);
         }
     }
 
-    // Victoire par 5+ avec nuance "cassable par capture"
     if (rules.allowFiveOrMore && checkFiveOrMoreFrom(m.pos, playerToCell(m.by))) {
         if (!isFiveBreakableNow(m.by, rules)) {
             gameState = GameStatus::WinByAlign;
         }
     }
 
-    // Victoire par captures (ne pas écraser une victoire déjà établie si on veut priorité align)
     if (rules.capturesEnabled && gameState == GameStatus::Ongoing) {
         if (blackPairs >= rules.captureWinPairs || whitePairs >= rules.captureWinPairs)
             gameState = GameStatus::WinByCapture;
     }
 
-    // Nulle: plateau plein sans victoire
     if (gameState == GameStatus::Ongoing && isBoardFull())
         gameState = GameStatus::Draw;
 
-    moveHistory.push_back(std::move(u));
+    if (record) {
+        moveHistory.push_back(std::move(u));
+    }
     currentPlayer = opponent(currentPlayer);
-    // Zobrist: side-to-move
     zobristHash ^= Z_SIDE;
 
     return PlayResult::ok();
+}
+
+PlayResult Board::tryPlay(Move m, const RuleSet& rules)
+{
+    return applyCore(m, rules, true);
+}
+
+bool Board::speculativeTry(Move m, const RuleSet& rules, PlayResult* out)
+{
+    // Implémentation Option B (diff ciblé) :
+    // On enregistre uniquement l'état minimal nécessaire pour restaurer :
+    // - hash, joueur courant, compteurs captures, statut
+    // - contenu des cellules susceptibles de changer (la case jouée + jusqu'à 8*2 candidates captures)
+
+    uint64_t hashBefore = zobristHash;
+    Player playerBefore = currentPlayer;
+    int blackPairsBefore = blackPairs;
+    int whitePairsBefore = whitePairs;
+    GameStatus statusBefore = gameState;
+
+    struct CellSnapshot {
+        Pos p;
+        Cell before;
+    };
+    CellSnapshot center { m.pos, at(m.pos.x, m.pos.y) }; // devrait être Empty si légal
+
+    // Générer les positions candidates pouvant être capturées (x1,x2) pour chaque direction ±
+    static constexpr int DX[4] = { 1, 0, 1, 1 };
+    static constexpr int DY[4] = { 0, 1, 1, -1 };
+    CellSnapshot candidates[16];
+    int candCount = 0;
+    bool seen[BOARD_SIZE * BOARD_SIZE] = { false };
+    auto mark = [&](int x, int y) {
+        if (!isInside(x, y))
+            return;
+        int idFlat = y * BOARD_SIZE + x;
+        if (seen[idFlat])
+            return;
+        seen[idFlat] = true;
+        candidates[candCount++] = CellSnapshot { Pos { (uint8_t)x, (uint8_t)y }, at(x, y) };
+    };
+    for (int d = 0; d < 4; ++d) {
+        int x1 = m.pos.x + DX[d], y1 = m.pos.y + DY[d];
+        int x2 = m.pos.x + 2 * DX[d], y2 = m.pos.y + 2 * DY[d];
+        mark(x1, y1);
+        mark(x2, y2);
+        int X1 = m.pos.x - DX[d], Y1 = m.pos.y - DY[d];
+        int X2 = m.pos.x - 2 * DX[d], Y2 = m.pos.y - 2 * DY[d];
+        mark(X1, Y1);
+        mark(X2, Y2);
+    }
+
+    PlayResult pr = applyCore(m, rules, false);
+    if (out)
+        *out = pr;
+    if (!pr.success) {
+        // Aucune mutation durable si échec (toutes les validations échouantes précèdent la pose).
+        return false;
+    }
+
+    // ROLLBACK : retirer la pierre posée et restaurer les cellules capturées.
+    // La pierre jouée est toujours à m.pos si succès.
+    cells[idx(m.pos.x, m.pos.y)] = center.before; // normalement Empty
+
+    // Restaurer chaque cellule candidate devenue vide alors qu'elle ne l'était pas avant
+    for (int i = 0; i < candCount; ++i) {
+        auto& snap = candidates[i];
+        Cell after = at(snap.p.x, snap.p.y);
+        // Si la cellule a été vidée (capture) on la restaure.
+        if (snap.before != Cell::Empty && after == Cell::Empty) {
+            // (snap.before devrait être oppC en pratique)
+            cells[idx(snap.p.x, snap.p.y)] = snap.before;
+        }
+    }
+
+    // Restaurer compteurs & statut & trait & hash
+    blackPairs = blackPairsBefore;
+    whitePairs = whitePairsBefore;
+    gameState = statusBefore;
+    currentPlayer = playerBefore;
+    zobristHash = hashBefore; // hash global cohérent (inclut side to move)
+
+    return true;
 }
 
 // ------------------------------------------------

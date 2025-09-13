@@ -33,6 +33,17 @@ public:
     PlayResult tryPlay(Move m, const RuleSet& rules);
     bool undo();
 
+    // Simulation sans effet durable : applique le coup via la même logique que tryPlay
+    // (règles complètes: captures, double-trois, obligation de casser, conditions de victoire),
+    // puis RESTAURE l'état initial (diff ciblé) :
+    //   * aucune entrée ajoutée à moveHistory
+    //   * hash Zobrist identique avant/après
+    //   * currentPlayer, captures, statut rétablis
+    // Utilisation typique : validation UI, moteur de recherche IA.
+    // Retourne true si succès (PlayResult::ok) et remplit *out (si non nul);
+    // false sinon et *out contient l'échec (code/rayon).
+    bool speculativeTry(Move m, const RuleSet& rules, PlayResult* out);
+
     // Legacy API for compatibility
     bool play(Move m, const RuleSet& rules, std::string* whyNot = nullptr)
     {
@@ -75,6 +86,9 @@ private:
     bool isFiveBreakableNow(Player justPlayed, const RuleSet& rules) const;
 
     bool wouldCapture(Move m) const;
+
+    // Facteur interne : logique partagée d'application. Si record=true, pousse UndoEntry.
+    PlayResult applyCore(Move m, const RuleSet& rules, bool record);
 };
 
 } // namespace gomoku
