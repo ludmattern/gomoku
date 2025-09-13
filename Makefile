@@ -46,17 +46,16 @@ CORE_SRC = \
 	$(SRC_DIR)/gomoku/application/SessionController.cpp \
 	$(SRC_DIR)/gomoku/application/GameService.cpp \
 	$(SRC_DIR)/gomoku/application/MoveValidator.cpp \
-	$(SRC_DIR)/gomoku/infrastructure/MemoryBoardRepository.cpp
 
 GUI_SRC = \
 	main.cpp \
-	$(SRC_DIR)/gui/GameWindow.cpp \
-	$(SRC_DIR)/gui/GameBoardRenderer.cpp \
+	$(SRC_DIR)/ui/Button.cpp \
 	$(SRC_DIR)/scene/AScene.cpp \
 	$(SRC_DIR)/scene/GameScene.cpp \
 	$(SRC_DIR)/scene/GameSelect.cpp \
 	$(SRC_DIR)/scene/MainMenu.cpp \
-	$(SRC_DIR)/ui/Button.cpp \
+	$(SRC_DIR)/gui/GameWindow.cpp \
+	$(SRC_DIR)/gui/GameBoardRenderer.cpp \
 	$(SRC_DIR)/gui/ResourceManager.cpp
 
 TEST_SRC = \

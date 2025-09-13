@@ -1,14 +1,12 @@
 #include "gomoku/application/SessionController.hpp"
 #include "gomoku/ai/MinimaxSearchEngine.hpp"
-#include "gomoku/infrastructure/MemoryBoardRepository.hpp"
 
 namespace gomoku {
 
 SessionController::SessionController(const RuleSet& rules, Controller black, Controller white)
     : rules_(rules)
     , gameService_(std::make_unique<application::GameService>(
-          std::make_unique<ai::MinimaxSearchEngine>(),
-          std::make_unique<infrastructure::MemoryBoardRepository>()))
+          std::make_unique<ai::MinimaxSearchEngine>()))
     , black_(black)
     , white_(white)
 {

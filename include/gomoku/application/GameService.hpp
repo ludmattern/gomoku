@@ -7,8 +7,6 @@
 #include <memory>
 #include <vector>
 
-#include "gomoku/infrastructure/IBoardRepository.hpp" // for persistence (optional dependency)
-
 // Forward declarations
 namespace gomoku {
 class Board;
@@ -25,8 +23,7 @@ namespace gomoku::application {
 class GameService : public IGameService {
 public:
     explicit GameService(
-        std::unique_ptr<ISearchEngine> searchEngine = nullptr,
-        std::unique_ptr<infrastructure::IBoardRepository> repository = nullptr);
+        std::unique_ptr<ISearchEngine> searchEngine = nullptr);
 
     ~GameService() override; // Defined in .cpp to avoid incomplete type issues
 
@@ -57,10 +54,6 @@ public:
     std::optional<Move> getAIMove(int timeMs = 450);
     void setSearchEngine(std::unique_ptr<ISearchEngine> engine);
 
-    // Persistence integration
-    bool saveGame(const std::string& gameId);
-    bool loadGame(const std::string& gameId);
-
     // Observer management
     void addObserver(IGameObserver* obs);
     void removeObserver(IGameObserver* obs);
@@ -73,7 +66,6 @@ private:
 
     // Dependencies (injected)
     std::unique_ptr<ISearchEngine> searchEngine_;
-    std::unique_ptr<infrastructure::IBoardRepository> repository_;
     MoveValidator moveValidator_;
 
     // Observers (non owning raw pointers; lifetime managed by caller)
@@ -86,7 +78,6 @@ private:
     void notifyGameEnded();
 
     // Internal helpers
-    void updateGameStatus();
     bool validateMove(const Move& move, std::string* reason) const;
 };
 

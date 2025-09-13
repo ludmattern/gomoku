@@ -1,17 +1,14 @@
 #include "gomoku/application/GameService.hpp"
 #include "gomoku/core/Board.hpp"
-#include "gomoku/infrastructure/IBoardRepository.hpp"
 #include <algorithm>
 #include <stdexcept>
 
 namespace gomoku::application {
 
 GameService::GameService(
-    std::unique_ptr<ISearchEngine> searchEngine,
-    std::unique_ptr<infrastructure::IBoardRepository> repository)
+    std::unique_ptr<ISearchEngine> searchEngine)
     : board_(std::make_unique<Board>())
     , searchEngine_(std::move(searchEngine))
-    , repository_(std::move(repository))
 {
 }
 
@@ -22,7 +19,6 @@ void GameService::startNewGame(const RuleSet& rules)
     rules_ = rules;
     board_->reset();
     moveHistory_.clear();
-    updateGameStatus();
     notifyGameStarted();
 }
 
@@ -30,7 +26,6 @@ void GameService::reset()
 {
     board_->reset();
     moveHistory_.clear();
-    updateGameStatus();
     notifyGameStarted(); // reset is observed as a (re)start
 }
 
@@ -72,7 +67,6 @@ PlayResult GameService::makeMove(const Move& move)
     auto result = board_->tryPlay(move, rules_);
     if (result.success) {
         moveHistory_.push_back(move);
-        updateGameStatus();
         notifyMovePlayed(move);
         if (getGameStatus() != GameStatus::Ongoing) {
             notifyGameEnded();
@@ -96,7 +90,6 @@ bool GameService::undo()
     bool success = board_->undo();
     if (success && !moveHistory_.empty()) {
         moveHistory_.pop_back();
-        updateGameStatus();
         notifyUndo();
     }
     return success;
@@ -140,56 +133,6 @@ std::optional<Move> GameService::getAIMove(int timeMs)
 void GameService::setSearchEngine(std::unique_ptr<ISearchEngine> engine)
 {
     searchEngine_ = std::move(engine);
-}
-
-bool GameService::saveGame(const std::string& gameId)
-{
-    if (!repository_) {
-        return false;
-    }
-
-    GameState state = GameState::fromBoard(*board_, moveHistory_, rules_);
-    return repository_->save(gameId, state);
-}
-
-bool GameService::loadGame(const std::string& gameId)
-{
-    if (!repository_) {
-        return false;
-    }
-
-    auto stateOpt = repository_->load(gameId);
-    if (!stateOpt) {
-        return false;
-    }
-
-    const auto& state = *stateOpt;
-
-    // Restore game state
-    rules_ = state.rules;
-    moveHistory_ = state.moveHistory;
-
-    // Reset board and replay moves
-    board_->reset();
-    for (const auto& move : state.moveHistory) {
-        auto result = board_->tryPlay(move, rules_);
-        if (!result.success) {
-            // Corrupted save file - reset to clean state
-            board_->reset();
-            moveHistory_.clear();
-            return false;
-        }
-    }
-
-    updateGameStatus();
-    return true;
-}
-
-// Private methods
-void GameService::updateGameStatus()
-{
-    // The board already tracks game status internally
-    // This could be extended to trigger events, logging, etc.
 }
 
 // ---- Observer management ----
