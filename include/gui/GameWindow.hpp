@@ -1,5 +1,4 @@
 #pragma once
-
 #include "gui/GameBoardRenderer.hpp"
 #include "gui/ResourceManager.hpp"
 #include "scene/AScene.hpp"

@@ -1,3 +1,4 @@
+#pragma once
 #include "gomoku/ai/MinimaxSearch.hpp"
 #include "gomoku/core/Types.hpp"
 #include "gomoku/interfaces/ISearchEngine.hpp"

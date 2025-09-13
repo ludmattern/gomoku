@@ -1,5 +1,4 @@
 #pragma once
-
 #include "gomoku/interfaces/IBoardView.hpp"
 #include <SFML/Graphics.hpp>
 #include <optional>

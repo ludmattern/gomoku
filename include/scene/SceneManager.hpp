@@ -1,5 +1,4 @@
 #pragma once
-
 #include "scene/AScene.hpp"
 #include <memory>
 

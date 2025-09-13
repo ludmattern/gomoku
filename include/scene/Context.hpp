@@ -1,5 +1,4 @@
 #pragma once
-
 #include "gui/ResourceManager.hpp"
 #include <SFML/Graphics.hpp>
 

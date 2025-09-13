@@ -1,5 +1,4 @@
 #pragma once
-
 #include "gomoku/application/SessionController.hpp"
 #include "gomoku/core/Types.hpp"
 #include "gui/GameBoardRenderer.hpp"

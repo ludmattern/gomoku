@@ -1,9 +1,4 @@
 #pragma once
-// Reworked SessionController: now a thin UI/session adapter over GameService
-// (previously wrapped Engine directly). Engine responsibilities already
-// encapsulate GameService; to reduce duplication we depend directly on
-// GameService which owns the Board and AI search engine.
-
 #include "gomoku/ai/SearchStats.hpp"
 #include "gomoku/application/GameService.hpp"
 #include "gomoku/core/Types.hpp"
