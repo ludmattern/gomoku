@@ -81,13 +81,13 @@ bool Board::createsIllegalDoubleThree(Move m, const RuleSet& rules) const
             int x1 = m.pos.x + DX[d], y1 = m.pos.y + DY[d];
             int x2 = m.pos.x + 2 * DX[d], y2 = m.pos.y + 2 * DY[d];
             int x3 = m.pos.x + 3 * DX[d], y3 = m.pos.y + 3 * DY[d];
-            if (isInside(x3, y3) && at(x1, y1) == OP && at(x2, y2) == OP && at(x3, y3) == ME)
+            if (isInside(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)) && at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == OP && at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == OP && at(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)) == ME)
                 return (x == x1 && y == y1) || (x == x2 && y == y2);
             // sens -
             int X1 = m.pos.x - DX[d], Y1 = m.pos.y - DY[d];
             int X2 = m.pos.x - 2 * DX[d], Y2 = m.pos.y - 2 * DY[d];
             int X3 = m.pos.x - 3 * DX[d], Y3 = m.pos.y - 3 * DY[d];
-            if (isInside(X3, Y3) && at(X1, Y1) == OP && at(X2, Y2) == OP && at(X3, Y3) == ME)
+            if (isInside(static_cast<uint8_t>(X3), static_cast<uint8_t>(Y3)) && at(static_cast<uint8_t>(X1), static_cast<uint8_t>(Y1)) == OP && at(static_cast<uint8_t>(X2), static_cast<uint8_t>(Y2)) == OP && at(static_cast<uint8_t>(X3), static_cast<uint8_t>(Y3)) == ME)
                 return (x == X1 && y == Y1) || (x == X2 && y == Y2);
         }
         return false;
@@ -100,7 +100,7 @@ bool Board::createsIllegalDoubleThree(Move m, const RuleSet& rules) const
             return ME;
         if (capturedVirt(x, y))
             return Cell::Empty;
-        return at(x, y);
+        return at(static_cast<uint8_t>(x), static_cast<uint8_t>(y));
     };
 
     auto hasThreeInLine = [&](int dx, int dy) -> bool {
@@ -151,9 +151,9 @@ bool Board::checkFiveOrMoreFrom(Pos p, Cell who) const
             while (true) {
                 x += s * DX[d];
                 y += s * DY[d];
-                if (!isInside(x, y))
+                if (!isInside(static_cast<uint8_t>(x), static_cast<uint8_t>(y)))
                     break;
-                if (at(x, y) == who)
+                if (at(static_cast<uint8_t>(x), static_cast<uint8_t>(y)) == who)
                     ++count;
                 else
                     break;
@@ -182,11 +182,11 @@ int Board::applyCapturesAround(Pos p, Cell who, const RuleSet& rules, std::vecto
         int x1 = sx + dx, y1 = sy + dy;
         int x2 = sx + 2 * dx, y2 = sy + 2 * dy;
         int x3 = sx + 3 * dx, y3 = sy + 3 * dy;
-        if (!isInside(x3, y3))
+        if (!isInside(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)))
             return false;
-        if (at(x1, y1) == opp && at(x2, y2) == opp && at(x3, y3) == who) {
-            cells[idx(x1, y1)] = Cell::Empty;
-            cells[idx(x2, y2)] = Cell::Empty;
+        if (at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == opp && at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == opp && at(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)) == who) {
+            cells[idx(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1))] = Cell::Empty;
+            cells[idx(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2))] = Cell::Empty;
             removed.push_back({ (uint8_t)x1, (uint8_t)y1 });
             removed.push_back({ (uint8_t)x2, (uint8_t)y2 });
             return true;
@@ -333,13 +333,13 @@ bool Board::speculativeTry(Move m, const RuleSet& rules, PlayResult* out)
     int candCount = 0;
     bool seen[BOARD_SIZE * BOARD_SIZE] = { false };
     auto mark = [&](int x, int y) {
-        if (!isInside(x, y))
+        if (!isInside(static_cast<uint8_t>(x), static_cast<uint8_t>(y)))
             return;
         int idFlat = y * BOARD_SIZE + x;
         if (seen[idFlat])
             return;
         seen[idFlat] = true;
-        candidates[candCount++] = CellSnapshot { Pos { (uint8_t)x, (uint8_t)y }, at(x, y) };
+        candidates[candCount++] = CellSnapshot { Pos { (uint8_t)x, (uint8_t)y }, at(static_cast<uint8_t>(x), static_cast<uint8_t>(y)) };
     };
     for (int d = 0; d < 4; ++d) {
         int x1 = m.pos.x + DX[d], y1 = m.pos.y + DY[d];
@@ -431,9 +431,9 @@ std::vector<Move> Board::legalMoves(Player p, const RuleSet& rules) const
             for (int dy = -2; dy <= 2 && !near; ++dy) {
                 for (int dx = -2; dx <= 2; ++dx) {
                     int nx = x + dx, ny = y + dy;
-                    if (!isInside(nx, ny))
+                    if (!isInside(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny)))
                         continue;
-                    if (at(nx, ny) != Cell::Empty) {
+                    if (at(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny)) != Cell::Empty) {
                         near = true;
                         break;
                     }
@@ -481,7 +481,7 @@ bool Board::isFiveBreakableNow(Player justPlayed, const RuleSet& rules) const
 
     for (int y = 0; y < BOARD_SIZE; ++y) {
         for (int x = 0; x < BOARD_SIZE; ++x) {
-            if (base.at(x, y) != Cell::Empty)
+            if (base.at(static_cast<uint8_t>(x), static_cast<uint8_t>(y)) != Cell::Empty)
                 continue;
 
             Move mv { Pos { (uint8_t)x, (uint8_t)y }, opp };
@@ -542,13 +542,13 @@ bool Board::wouldCapture(Move m) const
         int x1 = m.pos.x + DX[d], y1 = m.pos.y + DY[d];
         int x2 = m.pos.x + 2 * DX[d], y2 = m.pos.y + 2 * DY[d];
         int x3 = m.pos.x + 3 * DX[d], y3 = m.pos.y + 3 * DY[d];
-        if (inside(x1, y1) && inside(x2, y2) && inside(x3, y3) && at(x1, y1) == opp && at(x2, y2) == opp && at(x3, y3) == me)
+        if (inside(x1, y1) && inside(x2, y2) && inside(x3, y3) && at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == opp && at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == opp && at(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)) == me)
             return true;
 
         int X1 = m.pos.x - DX[d], Y1 = m.pos.y - DY[d];
         int X2 = m.pos.x - 2 * DX[d], Y2 = m.pos.y - 2 * DY[d];
         int X3 = m.pos.x - 3 * DX[d], Y3 = m.pos.y - 3 * DY[d];
-        if (inside(X1, Y1) && inside(X2, Y2) && inside(X3, Y3) && at(X1, Y1) == opp && at(X2, Y2) == opp && at(X3, Y3) == me)
+        if (inside(X1, Y1) && inside(X2, Y2) && inside(X3, Y3) && at(static_cast<uint8_t>(X1), static_cast<uint8_t>(Y1)) == opp && at(static_cast<uint8_t>(X2), static_cast<uint8_t>(Y2)) == opp && at(static_cast<uint8_t>(X3), static_cast<uint8_t>(Y3)) == me)
             return true;
     }
     return false;

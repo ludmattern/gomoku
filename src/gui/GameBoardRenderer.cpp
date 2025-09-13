@@ -45,7 +45,8 @@ void GameBoardRenderer::render(sf::RenderWindow& window) const
     const auto size = window.getSize();
     const float centerX = static_cast<float>(size.x) * 0.5f;
     const float centerY = static_cast<float>(size.y) * 0.5f;
-    const float tileW = std::min(size.x * 0.8f / 18.f, size.y * 0.8f * 2.f / 18.f);
+    const float tileW = std::min(static_cast<float>(size.x) * 0.8f / 18.f,
+        static_cast<float>(size.y) * 0.8f * 2.f / 18.f);
     const float tileH = tileW * 0.5f;
 
     if (boardSprite_) {
@@ -58,7 +59,7 @@ void GameBoardRenderer::render(sf::RenderWindow& window) const
 
     for (int i = 0; i < N_INTERSECTIONS; ++i) {
         for (int j = 0; j < N_INTERSECTIONS; ++j) {
-            auto c = boardView_->at(i, j);
+            auto c = boardView_->at(static_cast<uint8_t>(i), static_cast<uint8_t>(j));
             if (c == gomoku::Cell::Empty)
                 continue;
             const auto p = isoToScreen(i, j, tileW, tileH, centerX, centerY);
@@ -70,7 +71,7 @@ void GameBoardRenderer::render(sf::RenderWindow& window) const
             if (!sprite || !sprite->getTexture())
                 continue;
             float pawnSize = tileW * 0.6f;
-            float scale = pawnSize / sprite->getTexture()->getSize().x;
+            float scale = pawnSize / static_cast<float>(sprite->getTexture()->getSize().x);
             sprite->setPosition({ p.x - pawnSize * 0.5f, p.y - pawnSize * 0.5f - 5.f });
             sprite->setScale({ scale, scale });
             window.draw(*sprite);

@@ -57,7 +57,7 @@ struct Pos {
     constexpr bool isValid() const noexcept { return x < BOARD_SIZE && y < BOARD_SIZE; }
 
     /// @brief Convert to linear index (for arrays)
-    constexpr uint16_t toIndex() const noexcept { return y * BOARD_SIZE + x; }
+    constexpr uint16_t toIndex() const noexcept { return static_cast<uint16_t>(y * BOARD_SIZE + x); }
 
     /// @brief Create position from linear index
     static constexpr Pos fromIndex(uint16_t idx) noexcept

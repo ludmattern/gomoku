@@ -14,7 +14,7 @@ void Button::setTexture(const sf::Texture* texture)
         sprite_ = std::make_unique<sf::Sprite>(*texture_);
         auto tex = texture_->getSize();
         sprite_->setScale({ scale_, scale_ });
-        shape_.setSize({ tex.x * scale_, tex.y * scale_ });
+        shape_.setSize({ static_cast<float>(tex.x) * scale_, static_cast<float>(tex.y) * scale_ });
         sprite_->setPosition(shape_.getPosition());
     }
 }
@@ -32,8 +32,8 @@ void Button::setSize(const sf::Vector2f& size)
     shape_.setSize(size);
     if (sprite_ && texture_) {
         auto texSize = texture_->getSize();
-        float sx = size.x / texSize.x;
-        float sy = size.y / texSize.y;
+        float sx = size.x / static_cast<float>(texSize.x);
+        float sy = size.y / static_cast<float>(texSize.y);
         scale_ = std::min(sx, sy);
         sprite_->setScale({ scale_, scale_ });
     }
@@ -45,7 +45,7 @@ void Button::setScale(float scale)
     if (sprite_ && texture_) {
         sprite_->setScale({ scale_, scale_ });
         auto tex = texture_->getSize();
-        shape_.setSize({ tex.x * scale_, tex.y * scale_ });
+        shape_.setSize({ static_cast<float>(tex.x) * scale_, static_cast<float>(tex.y) * scale_ });
     } else {
         auto s = shape_.getSize();
         shape_.setSize({ s.x * scale_, s.y * scale_ });

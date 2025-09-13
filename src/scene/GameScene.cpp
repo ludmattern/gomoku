@@ -82,7 +82,8 @@ bool GameScene::handleInput(sf::Event& event)
             const int N = 19;
             const int C = (N - 1) / 2;
 
-            const float tileW = std::min(size.x * 0.8f / 18.f, size.y * 0.8f * 2.f / 18.f);
+            const float tileW = std::min(static_cast<float>(size.x) * 0.8f / 18.f,
+                static_cast<float>(size.y) * 0.8f * 2.f / 18.f);
             const float tileH = tileW * 0.5f;
 
             sf::Vector2f mp = context_.window->mapPixelToCoords(sf::Vector2i(event.mouseButton.x, event.mouseButton.y));

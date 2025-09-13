@@ -22,8 +22,8 @@ struct SearchConfig {
 
 class MinimaxSearch {
 public:
-    explicit MinimaxSearch(const SearchConfig& cfg)
-        : cfg(cfg)
+    explicit MinimaxSearch(const SearchConfig& conf)
+        : cfg(conf)
     {
     }
 

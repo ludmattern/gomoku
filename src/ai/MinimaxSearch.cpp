@@ -278,7 +278,7 @@ std::vector<Move> MinimaxSearch::orderedMoves(Board& b, const RuleSet& rules, Pl
     }
 
     std::stable_sort(scored.begin(), scored.end(),
-        [](const Sc& a, const Sc& b) { return a.s > b.s; });
+        [](const Sc& lhs, const Sc& rhs) { return lhs.s > rhs.s; });
 
     std::vector<Move> out;
     out.reserve(scored.size());
@@ -308,21 +308,21 @@ int MinimaxSearch::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint
         bool openA = false, openB = false;
 
         int xx = (int)x - DX[d], yy = (int)y - DY[d];
-        while (inside(xx, yy) && b.at(xx, yy) == me) {
+        while (inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == me) {
             ++len;
             xx -= DX[d];
             yy -= DY[d];
         }
-        openA = inside(xx, yy) && b.at(xx, yy) == Cell::Empty;
+        openA = inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == Cell::Empty;
 
         xx = (int)x + DX[d];
         yy = (int)y + DY[d];
-        while (inside(xx, yy) && b.at(xx, yy) == me) {
+        while (inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == me) {
             ++len;
             xx += DX[d];
             yy += DY[d];
         }
-        openB = inside(xx, yy) && b.at(xx, yy) == Cell::Empty;
+        openB = inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == Cell::Empty;
 
         int open = (openA ? 1 : 0) + (openB ? 1 : 0);
 
@@ -343,13 +343,13 @@ int MinimaxSearch::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint
         int x1 = (int)x + DX[d], y1 = (int)y + DY[d];
         int x2 = (int)x + 2 * DX[d], y2 = (int)y + 2 * DY[d];
         int x3 = (int)x + 3 * DX[d], y3 = (int)y + 3 * DY[d];
-        if (inside(x3, y3) && b.at(x1, y1) == opp && b.at(x2, y2) == opp && b.at(x3, y3) == me)
+        if (inside(x3, y3) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == opp && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == opp && b.at(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)) == me)
             score += 4000;
 
         int X1 = (int)x - DX[d], Y1 = (int)y - DY[d];
         int X2 = (int)x - 2 * DX[d], Y2 = (int)y - 2 * DY[d];
         int X3 = (int)x - 3 * DX[d], Y3 = (int)y - 3 * DY[d];
-        if (inside(X3, Y3) && b.at(X1, Y1) == opp && b.at(X2, Y2) == opp && b.at(X3, Y3) == me)
+        if (inside(X3, Y3) && b.at(static_cast<uint8_t>(X1), static_cast<uint8_t>(Y1)) == opp && b.at(static_cast<uint8_t>(X2), static_cast<uint8_t>(Y2)) == opp && b.at(static_cast<uint8_t>(X3), static_cast<uint8_t>(Y3)) == me)
             score += 4000;
     }
 
@@ -389,20 +389,20 @@ int MinimaxSearch::evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who
 
     int X = x, Y = y, len = 1;
     int x1 = X - dx, y1 = Y - dy;
-    while (inside(x1, y1) && b.at(x1, y1) == who) {
+    while (inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == who) {
         ++len;
         x1 -= dx;
         y1 -= dy;
     }
-    bool openA = inside(x1, y1) && b.at(x1, y1) == Cell::Empty;
+    bool openA = inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == Cell::Empty;
 
     int x2 = X + dx, y2 = Y + dy;
-    while (inside(x2, y2) && b.at(x2, y2) == who) {
+    while (inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == who) {
         ++len;
         x2 += dx;
         y2 += dy;
     }
-    bool openB = inside(x2, y2) && b.at(x2, y2) == Cell::Empty;
+    bool openB = inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == Cell::Empty;
 
     int open = (openA ? 1 : 0) + (openB ? 1 : 0);
 

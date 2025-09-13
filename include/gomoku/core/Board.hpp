@@ -58,7 +58,7 @@ public:
 
 private:
     static constexpr int N = BOARD_SIZE * BOARD_SIZE;
-    static constexpr uint16_t idx(uint8_t x, uint8_t y) { return y * BOARD_SIZE + x; }
+    static constexpr uint16_t idx(uint8_t x, uint8_t y) { return static_cast<uint16_t>(y * BOARD_SIZE + x); }
 
     std::array<Cell, N> cells {};
     Player currentPlayer { Player::Black };

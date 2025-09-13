@@ -1,7 +1,9 @@
 # Makefile for the Gomoku project
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -O2
+CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -O2 -Wpedantic \
+  -Wunused -Wunused-function -Wunused-variable -Wunused-parameter \
+  -Wunreachable-code -Wshadow -Wconversion -Wmissing-declarations
 
 # Enable parallel compilation by default
 MAKEFLAGS += -j$(shell nproc)
@@ -34,7 +36,6 @@ OBJ_DIR = $(BUILD_DIR)/obj
 TARGET = bin/Gomoku                # GUI executable (SFML)
 LIB_NAME = lib/libgomoku_logic.a   # static library logic/AI
 TEST_BIN = bin/tests_runner        # test binary (without SFML)
-CLI_BIN = bin/cli                  # CLI executable (without SFML)
 
 # Source groups
 CORE_SRC = \
@@ -62,18 +63,14 @@ GUI_SRC = \
 TEST_SRC = \
 	tests/test_min.cpp
 
-CLI_SRC = \
-	src/cli/cli.cpp
-
 # Objects
 CORE_OBJ = $(CORE_SRC:%.cpp=$(OBJ_DIR)/%.o)
 GUI_OBJ  = $(GUI_SRC:%.cpp=$(OBJ_DIR)/%.o)
 TEST_OBJ = $(TEST_SRC:%.cpp=$(OBJ_DIR)/%.o)
-CLI_OBJ = $(CLI_SRC:%.cpp=$(OBJ_DIR)/%.o)
 
 # Generate dependency files (.d)
 CXXFLAGS += -MMD
-DEPFILES := $(CORE_OBJ:%.o=%.d) $(GUI_OBJ:%.o=%.d) $(TEST_OBJ:%.o=%.d) $(CLI_OBJ:%.o=%.d)
+DEPFILES := $(CORE_OBJ:%.o=%.d) $(GUI_OBJ:%.o=%.d) $(TEST_OBJ:%.o=%.d)
 
 # Default rule: build the GUI executable
 all: $(TARGET)
@@ -95,11 +92,6 @@ $(TEST_BIN): $(TEST_OBJ) $(LIB_NAME)
 	@echo "[LD] $@"
 	$(CXX) $(TEST_OBJ) $(LIB_NAME) -o $@
 
-# CLI: executable without SFML, linked against the core lib
-$(CLI_BIN): $(CLI_OBJ) $(LIB_NAME)
-	@echo "[LD] $@"
-	$(CXX) $(CLI_OBJ) $(LIB_NAME) -o $@
-
 # Rule to compile objects (common)
 $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -116,7 +108,7 @@ clean:
 
 # Full clean rule
 fclean: clean
-	@rm -f $(TARGET) $(LIB_NAME) $(TEST_BIN) $(CLI_BIN)
+	@rm -f $(TARGET) $(LIB_NAME) $(TEST_BIN)
 
 # Rebuild rule
 re: fclean
@@ -145,7 +137,6 @@ help:
 	@echo "  lib       - Build core library only"
 	@echo "  debug     - Build with debug symbols (-g -DDEBUG)"
 	@echo "  test      - Build and run tests"
-	@echo "  cli       - Build and run CLI version"
 	@echo ""
 	@echo "Clean Targets:"
 	@echo "  clean     - Remove build directory"
@@ -197,9 +188,6 @@ lib: $(LIB_NAME)
 test: $(TEST_BIN)
 	./$(TEST_BIN) -v
 
-cli: $(CLI_BIN)
-	./$(CLI_BIN) -v
-
 # Environment variables for SFML (runtime)
 # (Optional) Uncomment to propagate SFML libs path at runtime
 # export LD_LIBRARY_PATH := $(SFML_DIR)/lib:$(LD_LIBRARY_PATH)
@@ -209,4 +197,4 @@ cli: $(CLI_BIN)
 -include $(wildcard $(DEPFILES))
 
 # Phony rules
-.PHONY: all debug clean fclean re install uninstall help check-deps test SFML lib cli setup
+.PHONY: all debug clean fclean re install uninstall help check-deps test SFML lib setup

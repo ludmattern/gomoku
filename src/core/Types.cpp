@@ -40,7 +40,7 @@ GameState GameState::fromBoard(const IBoardView& boardView, const std::vector<Mo
     // Copy board state
     for (int y = 0; y < BOARD_SIZE; ++y) {
         for (int x = 0; x < BOARD_SIZE; ++x) {
-            state.board[y * BOARD_SIZE + x] = boardView.at(x, y);
+            state.board[y * BOARD_SIZE + x] = boardView.at(static_cast<uint8_t>(x), static_cast<uint8_t>(y));
         }
     }
 

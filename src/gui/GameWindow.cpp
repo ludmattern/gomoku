@@ -101,8 +101,8 @@ void GameWindow::render()
             if (elapsed >= delay) {
                 float t = std::min((elapsed - delay) / duration, 1.f);
                 t = t * t * (3.f - 2.f * t);
-                float Rmax = std::hypot(win.x * 0.5f, win.y * 0.5f);
-                radialMask_.setUniform("uCenter", sf::Glsl::Vec2(win.x * 0.5f, win.y * 0.5f));
+                float Rmax = std::hypot(static_cast<float>(win.x) * 0.5f, static_cast<float>(win.y) * 0.5f);
+                radialMask_.setUniform("uCenter", sf::Glsl::Vec2(static_cast<float>(win.x) * 0.5f, static_cast<float>(win.y) * 0.5f));
                 radialMask_.setUniform("uRadius", t * Rmax);
                 window_.draw(*backgroundSprite_, &radialMask_);
                 if (t >= 1.f)
