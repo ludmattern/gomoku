@@ -14,12 +14,6 @@ class Board;
 
 namespace gomoku::application {
 
-/**
- * Concrete implementation of IGameService
- *
- * Orchestrates game flow by coordinating Board, Rules, and AI components.
- * Follows Single Responsibility Principle - focuses only on game orchestration.
- */
 class GameService : public IGameService {
 public:
     explicit GameService(

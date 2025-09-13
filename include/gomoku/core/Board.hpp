@@ -10,8 +10,6 @@
 namespace gomoku {
 
 // Implémentation concrète de IBoardView pour libgomoku_logic.a
-// API publique : voir include/gomoku/IBoardView.hpp
-// Représentation métier sans dépendance UI
 class Board final : public IBoardView {
 public:
     Board();
@@ -33,15 +31,6 @@ public:
     PlayResult tryPlay(Move m, const RuleSet& rules);
     bool undo();
 
-    // Simulation sans effet durable : applique le coup via la même logique que tryPlay
-    // (règles complètes: captures, double-trois, obligation de casser, conditions de victoire),
-    // puis RESTAURE l'état initial (diff ciblé) :
-    //   * aucune entrée ajoutée à moveHistory
-    //   * hash Zobrist identique avant/après
-    //   * currentPlayer, captures, statut rétablis
-    // Utilisation typique : validation UI, moteur de recherche IA.
-    // Retourne true si succès (PlayResult::ok) et remplit *out (si non nul);
-    // false sinon et *out contient l'échec (code/rayon).
     bool speculativeTry(Move m, const RuleSet& rules, PlayResult* out);
 
     // Legacy API for compatibility

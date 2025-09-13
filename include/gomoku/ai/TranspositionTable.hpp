@@ -36,7 +36,7 @@ public:
         mask = pow2 - 1;
     }
 
-    [[nodiscard]] Entry* probe(uint64_t key) const
+    Entry* probe(uint64_t key) const
     {
         if (table.empty())
             return nullptr;

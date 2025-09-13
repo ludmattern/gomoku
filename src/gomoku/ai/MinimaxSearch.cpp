@@ -1,26 +1,4 @@
 // MinimaxSearch.cpp
-// -----------------------------------------------------------------------------
-// Responsibilities
-//  - Provides iterative deepening alpha-beta search with a transposition table
-//    (see TranspositionTable) and light move ordering heuristics.
-//  - Supplies a fast static evaluation based on pattern counting and captured
-//    pairs. The pattern <length, openness> --> score mapping is now centralized
-//    (see anonymous namespace) to avoid duplication between evaluation and the
-//    move ordering pre-score. Ordering uses a higher WIN constant in order to
-//    push outright winning continuations to the front without changing the
-//    final evaluation semantics.
-//  - Time / node budget enforcement via 'expired()'. When the time budget is
-//    exceeded during a deepening iteration the last fully completed depth's
-//    best move is returned.
-//  - Transposition table (external class) stores: (key, depth, score, flag,
-//    best move). Flags encode: Exact, Lower (alpha), Upper (beta).
-// Notes
-//  - Evaluation is asymmetric only via the POV subtraction: score = me - opp.
-//  - Quick local move scoring bypasses making the move for ordering speed.
-//  - Capture threats (XOOX) receive a fixed bonus.
-//  - Constants preserved from original implementation; factorization intended
-//    purely for clarity.
-// -----------------------------------------------------------------------------
 #include "gomoku/ai/MinimaxSearch.hpp"
 #include "gomoku/core/Board.hpp"
 #include <algorithm>
@@ -28,14 +6,6 @@
 
 namespace gomoku {
 
-// -----------------------------------------------------------------------------
-// Internal helpers (pattern scoring) -- first step of refactor to reduce
-// duplicated mapping logic between evaluateOneDir() and quickScoreMove().
-// We'll use two slightly different score tables: one for the evaluation
-// function (smaller winning constant) and one for move ordering heuristics
-// (larger winning constant + same relative ordering of threats). This keeps
-// previous behaviour while centralising the mapping.
-// -----------------------------------------------------------------------------
 namespace {
     struct PatternConfig {
         int win;

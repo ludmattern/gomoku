@@ -186,7 +186,7 @@ bool GameService::validateMove(const Move& move, std::string* reason) const
             *reason = base.reason;
         return false;
     }
-    // Nouvelle stratégie : utilisation de Board::speculativeTry (diff ciblé, aucun push historique).
+
     auto self = const_cast<GameService*>(this);
     PlayResult pr;
     bool ok = self->board_->speculativeTry(move, rules_, &pr);
