@@ -23,6 +23,7 @@ void GameService::startNewGame(const RuleSet& rules)
     board_->reset();
     moveHistory_.clear();
     updateGameStatus();
+    notifyGameStarted();
 }
 
 void GameService::reset()
@@ -30,6 +31,7 @@ void GameService::reset()
     board_->reset();
     moveHistory_.clear();
     updateGameStatus();
+    notifyGameStarted(); // reset is observed as a (re)start
 }
 
 GameStatus GameService::getGameStatus() const
@@ -53,7 +55,17 @@ PlayResult GameService::makeMove(const Move& move)
     // Validate the move first
     std::string reason;
     if (!isMoveLegal(move, &reason)) {
-        return PlayResult::fail(reason);
+        PlayErrorCode code = PlayErrorCode::RuleViolation;
+        if (reason == "Invalid position")
+            code = PlayErrorCode::InvalidPosition;
+        else if (reason == "Not this player's turn")
+            code = PlayErrorCode::NotPlayersTurn;
+        else if (reason == "Position already occupied")
+            code = PlayErrorCode::Occupied;
+        else if (reason == "Game already finished")
+            code = PlayErrorCode::GameFinished;
+        // Reste: RuleViolation (double-three, must-break...) déjà mappé
+        return PlayResult::fail(code, reason);
     }
 
     // Attempt to play the move
@@ -61,6 +73,10 @@ PlayResult GameService::makeMove(const Move& move)
     if (result.success) {
         moveHistory_.push_back(move);
         updateGameStatus();
+        notifyMovePlayed(move);
+        if (getGameStatus() != GameStatus::Ongoing) {
+            notifyGameEnded();
+        }
     }
 
     return result;
@@ -81,6 +97,7 @@ bool GameService::undo()
     if (success && !moveHistory_.empty()) {
         moveHistory_.pop_back();
         updateGameStatus();
+        notifyUndo();
     }
     return success;
 }
@@ -175,40 +192,66 @@ void GameService::updateGameStatus()
     // This could be extended to trigger events, logging, etc.
 }
 
+// ---- Observer management ----
+void GameService::addObserver(IGameObserver* obs)
+{
+    if (!obs)
+        return;
+    if (std::find(observers_.begin(), observers_.end(), obs) == observers_.end()) {
+        observers_.push_back(obs);
+    }
+}
+
+void GameService::removeObserver(IGameObserver* obs)
+{
+    observers_.erase(std::remove(observers_.begin(), observers_.end(), obs), observers_.end());
+}
+
+void GameService::notifyGameStarted()
+{
+    for (auto* o : observers_) {
+        o->onGameStarted(rules_, *board_);
+    }
+}
+
+void GameService::notifyMovePlayed(const Move& move)
+{
+    for (auto* o : observers_) {
+        o->onMovePlayed(move, *board_, getGameStatus());
+    }
+}
+
+void GameService::notifyUndo()
+{
+    for (auto* o : observers_) {
+        o->onUndo(*board_, getGameStatus());
+    }
+}
+
+void GameService::notifyGameEnded()
+{
+    for (auto* o : observers_) {
+        o->onGameEnded(getGameStatus(), *board_);
+    }
+}
+
 bool GameService::validateMove(const Move& move, std::string* reason) const
 {
-    // Check basic validity
-    if (!move.isValid()) {
+    auto base = moveValidator_.validate(*board_, rules_, move);
+    if (!base.ok) {
         if (reason)
-            *reason = "Invalid position";
+            *reason = base.reason;
         return false;
     }
-
-    // Check if it's the correct player's turn
-    if (move.by != getCurrentPlayer()) {
-        if (reason)
-            *reason = "Not this player's turn";
-        return false;
-    }
-
-    // Check if position is empty
-    if (board_->at(move.pos.x, move.pos.y) != Cell::Empty) {
-        if (reason)
-            *reason = "Position already occupied";
-        return false;
-    }
-
-    // For basic gameplay, we can skip the restrictive windowing
-    // and only check for pattern rules (double-three, etc.)
-    // Create a temporary board to test the move
+    // Vérification profonde via simulation pour règles complexes
     Board tempBoard = *board_;
     auto result = tempBoard.tryPlay(move, rules_);
-
-    if (!result.success && reason) {
-        *reason = result.error;
+    if (!result.success) {
+        if (reason)
+            *reason = result.error;
+        return false;
     }
-
-    return result.success;
+    return true;
 }
 
 } // namespace gomoku::application

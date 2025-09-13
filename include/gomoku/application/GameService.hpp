@@ -1,5 +1,7 @@
 #pragma once
+#include "gomoku/application/MoveValidator.hpp"
 #include "gomoku/core/Types.hpp"
+#include "gomoku/interfaces/IGameObserver.hpp"
 #include "gomoku/interfaces/IGameService.hpp"
 #include "gomoku/interfaces/ISearchEngine.hpp"
 #include <memory>
@@ -59,6 +61,10 @@ public:
     bool saveGame(const std::string& gameId);
     bool loadGame(const std::string& gameId);
 
+    // Observer management
+    void addObserver(IGameObserver* obs);
+    void removeObserver(IGameObserver* obs);
+
 private:
     // Core game state
     std::unique_ptr<::gomoku::Board> board_;
@@ -68,6 +74,16 @@ private:
     // Dependencies (injected)
     std::unique_ptr<ISearchEngine> searchEngine_;
     std::unique_ptr<infrastructure::IBoardRepository> repository_;
+    MoveValidator moveValidator_;
+
+    // Observers (non owning raw pointers; lifetime managed by caller)
+    std::vector<IGameObserver*> observers_;
+
+    // Notify helpers
+    void notifyGameStarted();
+    void notifyMovePlayed(const Move& move);
+    void notifyUndo();
+    void notifyGameEnded();
 
     // Internal helpers
     void updateGameStatus();

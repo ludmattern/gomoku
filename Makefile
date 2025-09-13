@@ -44,6 +44,7 @@ CORE_SRC = \
 	$(SRC_DIR)/application/SessionController.cpp \
 	$(SRC_DIR)/application/Notation.cpp \
 	$(SRC_DIR)/gomoku/application/GameService.cpp \
+	$(SRC_DIR)/gomoku/application/MoveValidator.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
 	$(SRC_DIR)/gomoku/infrastructure/MemoryBoardRepository.cpp
 

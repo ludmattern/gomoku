@@ -111,14 +111,34 @@ struct CaptureCount {
 };
 
 /// @brief Result of attempting to play a move
+enum class PlayErrorCode : uint8_t {
+    None = 0,
+    InvalidPosition,
+    NotPlayersTurn,
+    Occupied,
+    GameFinished,
+    RuleViolation, // double-three, capture rule, etc.
+    InternalError
+};
+
 struct PlayResult {
     bool success = false;
-    std::string error; // Empty if successful
+    PlayErrorCode code = PlayErrorCode::None;
+    std::string error; // Empty if successful; human readable message
 
     constexpr explicit operator bool() const noexcept { return success; }
+    constexpr bool failed() const noexcept { return !success; }
 
-    static PlayResult ok() { return { true, "" }; }
-    static PlayResult fail(std::string reason) { return { false, std::move(reason) }; }
+    static PlayResult ok() { return { true, PlayErrorCode::None, "" }; }
+    static PlayResult fail(PlayErrorCode c, std::string reason)
+    {
+        return { false, c, std::move(reason) };
+    }
+    // Backward compatibility helper (defaults to RuleViolation if unspecified)
+    static PlayResult fail(std::string reason)
+    {
+        return { false, PlayErrorCode::RuleViolation, std::move(reason) };
+    }
 };
 
 /// @brief Game status/outcome

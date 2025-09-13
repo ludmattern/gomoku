@@ -207,13 +207,13 @@ int Board::applyCapturesAround(Pos p, Cell who, const RuleSet& rules, std::vecto
 PlayResult Board::tryPlay(Move m, const RuleSet& rules)
 {
     if (gameState != GameStatus::Ongoing) {
-        return PlayResult::fail("Game already finished.");
+        return PlayResult::fail(PlayErrorCode::GameFinished, "Game already finished.");
     }
     if (m.by != currentPlayer) {
-        return PlayResult::fail("Not this player's turn.");
+        return PlayResult::fail(PlayErrorCode::NotPlayersTurn, "Not this player's turn.");
     }
     if (!isEmpty(m.pos.x, m.pos.y)) {
-        return PlayResult::fail("Cell not empty.");
+        return PlayResult::fail(PlayErrorCode::Occupied, "Cell not empty.");
     }
 
     // Must-break rule: if opponent (justPlayed) currently has a breakable 5+, the side to move
@@ -230,7 +230,7 @@ PlayResult Board::tryPlay(Move m, const RuleSet& rules)
     if (mustBreak) {
         // Only capturing moves can break a 5+; quickly reject otherwise
         if (!wouldCapture(m)) {
-            return PlayResult::fail("Must break opponent's five.");
+            return PlayResult::fail(PlayErrorCode::RuleViolation, "Must break opponent's five.");
         }
         // Simulate capture effect to ensure this move actually breaks (or wins by capture)
         Board sim = *this;
@@ -248,7 +248,7 @@ PlayResult Board::tryPlay(Move m, const RuleSet& rules)
         Cell oppFiveColor = playerToCell(opponent(currentPlayer));
         bool breaks = (myPairsAfter >= rules.captureWinPairs) || (!sim.hasAnyFive(oppFiveColor));
         if (!breaks) {
-            return PlayResult::fail("Must break opponent's five.");
+            return PlayResult::fail(PlayErrorCode::RuleViolation, "Must break opponent's five.");
         }
         // This capture move is allowed even if it forms a double-three pattern
         allowDoubleThreeThisMove = true;
@@ -256,7 +256,7 @@ PlayResult Board::tryPlay(Move m, const RuleSet& rules)
 
     // Double-three rule, unless allowed due to must-break capture
     if (!allowDoubleThreeThisMove && createsIllegalDoubleThree(m, rules)) {
-        return PlayResult::fail("Illegal double-three.");
+        return PlayResult::fail(PlayErrorCode::RuleViolation, "Illegal double-three.");
     }
 
     // Enregistrer état pour undo
