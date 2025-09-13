@@ -1,4 +1,4 @@
-#include "gomoku/SessionController.hpp"
+#include "gomoku/application/SessionController.hpp"
 #include "gomoku/ai/MinimaxSearchEngine.hpp"
 #include "gomoku/infrastructure/MemoryBoardRepository.hpp"
 

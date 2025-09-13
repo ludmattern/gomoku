@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gomoku/SessionController.hpp"
+#include "gomoku/application/SessionController.hpp"
 #include "gomoku/core/Types.hpp"
 #include "gui/GameBoardRenderer.hpp"
 #include "scene/AScene.hpp"

@@ -1,5 +1,5 @@
 #include "board_print.hpp"
-#include "gomoku/SessionController.hpp"
+#include "gomoku/application/SessionController.hpp"
 #include "gomoku/core/Types.hpp"
 #include "test_framework.hpp"
 #include <cassert>

@@ -39,14 +39,13 @@ TEST_BIN = bin/tests_runner        # test binary (without SFML)
 
 # Source groups
 CORE_SRC = \
-	$(SRC_DIR)/core/Board.cpp \
-	$(SRC_DIR)/core/Types.cpp \
-	$(SRC_DIR)/ai/MinimaxSearch.cpp \
-	$(SRC_DIR)/application/SessionController.cpp \
-	$(SRC_DIR)/application/Notation.cpp \
+	$(SRC_DIR)/gomoku/core/Board.cpp \
+	$(SRC_DIR)/gomoku/core/Types.cpp \
+	$(SRC_DIR)/gomoku/ai/MinimaxSearch.cpp \
+	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
+	$(SRC_DIR)/gomoku/application/SessionController.cpp \
 	$(SRC_DIR)/gomoku/application/GameService.cpp \
 	$(SRC_DIR)/gomoku/application/MoveValidator.cpp \
-	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
 	$(SRC_DIR)/gomoku/infrastructure/MemoryBoardRepository.cpp
 
 GUI_SRC = \
