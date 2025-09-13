@@ -15,17 +15,9 @@ MoveValidator::Result MoveValidator::validate(const IBoardView& board, const Rul
         r.reason = "Game already finished";
         return r;
     }
-    if (move.by != board.toPlay()) {
-        r.reason = "Not this player's turn";
-        return r;
-    }
-    if (board.at(move.pos.x, move.pos.y) != Cell::Empty) {
-        r.reason = "Position already occupied";
-        return r;
-    }
 
-    // Prévalidation réussie; les règles complexes (double-trois, etc.) seront
-    // vérifiées par l'application réelle du coup dans Board::tryPlay.
+    // Prévalidation réussie; les règles complexes + tour + occupation sont
+    // vérifiées définitivement lors de l'appel à Board::tryPlay.
     r.ok = true;
     return r;
 }

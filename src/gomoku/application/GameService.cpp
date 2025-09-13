@@ -243,14 +243,24 @@ bool GameService::validateMove(const Move& move, std::string* reason) const
             *reason = base.reason;
         return false;
     }
-    // Vérification profonde via simulation pour règles complexes
-    Board tempBoard = *board_;
-    auto result = tempBoard.tryPlay(move, rules_);
-    if (!result.success) {
+    // Simulation sans copie (apply + undo):
+    //  Invariants supposés:
+    //   * Board::tryPlay ne produit d'effet que sur l'état interne et pousse exactement
+    //     une entrée d'historique si succès.
+    //   * Board::undo restaure totalement (pierres, captures, hash Zobrist, joueur courant, statut).
+    //   * Aucun observer n'est notifié ici: validateMove reste une opération interne.
+    //   * Aucun side-effect externe (I/O, logs persistants) n'est émis par tryPlay.
+    //  Avantage: évite la copie complète de Board (potentiellement coûteuse) pour chaque survol UI.
+    //  Risque futur: si tryPlay gagne un effet externe, cette stratégie devra être revue.
+    auto self = const_cast<GameService*>(this); // justifié car opération purement spéculative
+    PlayResult pr = self->board_->tryPlay(move, rules_);
+    if (!pr.success) {
         if (reason)
-            *reason = result.error;
+            *reason = pr.error;
         return false;
     }
+    bool undone = self->board_->undo();
+    (void)undone; // sécurité: devrait toujours réussir ici
     return true;
 }
 
