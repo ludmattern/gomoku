@@ -1,9 +1,81 @@
+// MinimaxSearch.cpp
+// -----------------------------------------------------------------------------
+// Responsibilities
+//  - Provides iterative deepening alpha-beta search with a transposition table
+//    (see TranspositionTable) and light move ordering heuristics.
+//  - Supplies a fast static evaluation based on pattern counting and captured
+//    pairs. The pattern <length, openness> --> score mapping is now centralized
+//    (see anonymous namespace) to avoid duplication between evaluation and the
+//    move ordering pre-score. Ordering uses a higher WIN constant in order to
+//    push outright winning continuations to the front without changing the
+//    final evaluation semantics.
+//  - Time / node budget enforcement via 'expired()'. When the time budget is
+//    exceeded during a deepening iteration the last fully completed depth's
+//    best move is returned.
+//  - Transposition table (external class) stores: (key, depth, score, flag,
+//    best move). Flags encode: Exact, Lower (alpha), Upper (beta).
+// Notes
+//  - Evaluation is asymmetric only via the POV subtraction: score = me - opp.
+//  - Quick local move scoring bypasses making the move for ordering speed.
+//  - Capture threats (XOOX) receive a fixed bonus.
+//  - Constants preserved from original implementation; factorization intended
+//    purely for clarity.
+// -----------------------------------------------------------------------------
 #include "gomoku/ai/MinimaxSearch.hpp"
 #include "gomoku/core/Board.hpp"
 #include <algorithm>
 #include <limits>
 
 namespace gomoku {
+
+// -----------------------------------------------------------------------------
+// Internal helpers (pattern scoring) -- first step of refactor to reduce
+// duplicated mapping logic between evaluateOneDir() and quickScoreMove().
+// We'll use two slightly different score tables: one for the evaluation
+// function (smaller winning constant) and one for move ordering heuristics
+// (larger winning constant + same relative ordering of threats). This keeps
+// previous behaviour while centralising the mapping.
+// -----------------------------------------------------------------------------
+namespace {
+    struct PatternConfig {
+        int win;
+        int open4;
+        int half4;
+        int open3;
+        int half3;
+        int open2;
+        int half2;
+        int single;
+    };
+
+    // Values copied from the original if/else ladders (evaluateOneDir used 500000 win,
+    // quickScoreMove used 900000). Other values are identical.
+    constexpr PatternConfig EvalScores { 500000, 120000, 30000, 12000, 3000, 1000, 300, 20 };
+    constexpr PatternConfig OrderScores { 900000, 120000, 30000, 12000, 3000, 1000, 300, 20 };
+
+    inline int patternScore(int len, int open, const PatternConfig& cfg)
+    {
+        if (len >= 5)
+            return cfg.win;
+        if (len == 4)
+            return (open == 2 ? cfg.open4 : (open == 1 ? cfg.half4 : cfg.single));
+        if (len == 3)
+            return (open == 2 ? cfg.open3 : (open == 1 ? cfg.half3 : cfg.single));
+        if (len == 2)
+            return (open == 2 ? cfg.open2 : (open == 1 ? cfg.half2 : cfg.single));
+        return cfg.single; // isolated stone or closed sequences
+    }
+
+    inline int scorePattern(bool orderingContext, int len, int open)
+    {
+        return patternScore(len, open, orderingContext ? OrderScores : EvalScores);
+    }
+
+    inline int manhattan(int x, int y, int cx, int cy)
+    {
+        return (x > cx ? x - cx : cx - x) + (y > cy ? y - cy : cy - y);
+    }
+} // namespace
 
 // Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
 std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, SearchStats* stats)
@@ -34,7 +106,7 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
     t0 = std::chrono::steady_clock::now();
     timeUp = false;
     visited = 0;
-    initTT(cfg.ttBytes);
+    tt.resizeBytes(cfg.ttBytes);
     nodeCap = cfg.nodeCap;
 
     std::optional<Move> best {};
@@ -89,42 +161,6 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
     return best;
 }
 
-// ---------------- TT ----------------
-void MinimaxSearch::initTT(std::size_t bytes)
-{
-    if (!bytes)
-        bytes = (16ull << 20);
-    std::size_t n = bytes / sizeof(TTEntry);
-    if (n < 1024)
-        n = 1024;
-    std::size_t pow2 = 1;
-    while (pow2 < n)
-        pow2 <<= 1;
-    tt.assign(pow2, TTEntry {});
-    ttMask = pow2 - 1;
-}
-
-MinimaxSearch::TTEntry* MinimaxSearch::ttProbe(uint64_t key) const
-{
-    if (tt.empty())
-        return nullptr;
-    return const_cast<TTEntry*>(&tt[key & ttMask]);
-}
-
-void MinimaxSearch::ttStore(uint64_t key, int depth, int score, TTFlag flag, const std::optional<Move>& best)
-{
-    if (tt.empty())
-        return;
-    auto& e = tt[key & ttMask];
-    if (e.key != key || depth >= e.depth) {
-        e.key = key;
-        e.depth = depth;
-        e.score = score;
-        e.flag = flag;
-        e.best = best.value_or(Move { Pos { 0, 0 }, Player::Black });
-    }
-}
-
 // ---------------- Alpha-Beta ----------------
 MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats)
 {
@@ -141,13 +177,13 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
     Move ttBest {};
     bool haveTTBest = false;
 
-    if (auto e = ttProbe(key)) {
+    if (auto e = tt.probe(key)) {
         if (e->key == key && e->depth >= depth) {
             if (stats)
                 ++stats->ttHits;
-            if (e->flag == TTFlag::Exact)
+            if (e->flag == TranspositionTable::Flag::Exact)
                 return { e->score, e->best };
-            if (e->flag == TTFlag::Lower)
+            if (e->flag == TranspositionTable::Flag::Lower)
                 alpha = std::max(alpha, e->score);
             else
                 beta = std::min(beta, e->score);
@@ -212,12 +248,12 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
                 break;
         }
         // TT store
-        TTFlag flag = TTFlag::Exact;
+        auto flag = TranspositionTable::Flag::Exact;
         if (best <= alpha0)
-            flag = TTFlag::Upper;
+            flag = TranspositionTable::Flag::Upper;
         else if (best >= beta)
-            flag = TTFlag::Lower;
-        ttStore(key, depth, best, flag, bestMove);
+            flag = TranspositionTable::Flag::Lower;
+        tt.store(key, depth, best, flag, bestMove);
         return { bestMove ? best : evaluate(b, maxPlayer), bestMove };
     } else {
         int best = std::numeric_limits<int>::max();
@@ -240,12 +276,12 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
             if (beta <= alpha)
                 break;
         }
-        TTFlag flag = TTFlag::Exact;
+        auto flag = TranspositionTable::Flag::Exact;
         if (best <= alpha0)
-            flag = TTFlag::Upper;
+            flag = TranspositionTable::Flag::Upper;
         else if (best >= beta)
-            flag = TTFlag::Lower;
-        ttStore(key, depth, best, flag, bestMove);
+            flag = TranspositionTable::Flag::Lower;
+        tt.store(key, depth, best, flag, bestMove);
         return { bestMove ? best : evaluate(b, maxPlayer), bestMove };
     }
 }
@@ -324,17 +360,9 @@ int MinimaxSearch::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint
         openB = inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == Cell::Empty;
 
         int open = (openA ? 1 : 0) + (openB ? 1 : 0);
-
-        if (len >= 5)
-            score += 900000;
-        else if (len == 4)
-            score += (open == 2 ? 120000 : 30000);
-        else if (len == 3)
-            score += (open == 2 ? 12000 : 3000);
-        else if (len == 2)
-            score += (open == 2 ? 1000 : 300);
-        else
-            score += 20;
+        // Ordering context uses the higher WIN constant (900000) while preserving
+        // relative threat ordering; see helper table above.
+        score += scorePattern(true /* ordering context */, len, open);
     }
 
     // opportunité de capture XOOX
@@ -404,28 +432,7 @@ int MinimaxSearch::evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who
     bool openB = inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == Cell::Empty;
 
     int open = (openA ? 1 : 0) + (openB ? 1 : 0);
-
-    if (len >= 5)
-        return 500000;
-    if (len == 4) {
-        if (open == 2)
-            return 120000;
-        if (open == 1)
-            return 30000;
-    }
-    if (len == 3) {
-        if (open == 2)
-            return 12000;
-        if (open == 1)
-            return 3000;
-    }
-    if (len == 2) {
-        if (open == 2)
-            return 1000;
-        if (open == 1)
-            return 300;
-    }
-    return 20;
+    return scorePattern(false /* evaluation context */, len, open);
 }
 
 } // namespace gomoku
