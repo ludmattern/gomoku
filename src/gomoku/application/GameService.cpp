@@ -1,5 +1,6 @@
 #include "gomoku/application/GameService.hpp"
 #include "gomoku/core/Board.hpp"
+#include "gomoku/infrastructure/IBoardRepository.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -7,7 +8,7 @@ namespace gomoku::application {
 
 GameService::GameService(
     std::unique_ptr<ISearchEngine> searchEngine,
-    std::unique_ptr<IBoardRepository> repository)
+    std::unique_ptr<infrastructure::IBoardRepository> repository)
     : board_(std::make_unique<Board>())
     , searchEngine_(std::move(searchEngine))
     , repository_(std::move(repository))

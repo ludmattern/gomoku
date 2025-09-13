@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 
+#include "gomoku/infrastructure/IBoardRepository.hpp" // for persistence (optional dependency)
+
 // Forward declarations
 namespace gomoku {
 class Board;
@@ -22,6 +24,7 @@ class GameService : public IGameService {
 public:
     explicit GameService(
         std::unique_ptr<ISearchEngine> searchEngine = nullptr,
+        std::unique_ptr<infrastructure::IBoardRepository> repository = nullptr);
 
     ~GameService() override; // Defined in .cpp to avoid incomplete type issues
 
@@ -64,6 +67,7 @@ private:
 
     // Dependencies (injected)
     std::unique_ptr<ISearchEngine> searchEngine_;
+    std::unique_ptr<infrastructure::IBoardRepository> repository_;
 
     // Internal helpers
     void updateGameStatus();
