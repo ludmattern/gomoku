@@ -81,8 +81,6 @@ bool SessionController::undo(int halfMoves)
 void SessionController::reset(Player start)
 {
     gameService_->startNewGame(rules_);
-    // Force side: simple technique – if starting side is White and current is Black, play/undo trick not desirable.
-    // Instead extend GameService in future; for now if mismatch we just replay nothing because Board starts with Black.
     if (start == Player::White && gameService_->getCurrentPlayer() != Player::White) {
         // Hack: play a null move concept not available; defer future enhancement.
     }
