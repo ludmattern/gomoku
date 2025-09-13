@@ -4,7 +4,7 @@
 
 namespace gomoku {
 
-/// @brief Represents the statistics for a search
+// Represents the statistics for a search
 struct SearchStats {
     long long nodes = 0;
     long long qnodes = 0;

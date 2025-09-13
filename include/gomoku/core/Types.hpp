@@ -10,16 +10,16 @@
 
 namespace gomoku {
 
-/// @brief Board size (19x19 standard Gomoku)
+// Board size (19x19 standard Gomoku)
 inline constexpr int BOARD_SIZE = 19;
 
-/// @brief Represents a player in the game
+// Represents a player in the game
 enum class Player : uint8_t {
     Black, // Black player (plays first)
     White // White player
 };
 
-/// @brief Represents the state of a cell on the board
+// Represents the state of a cell on the board
 enum class Cell : uint8_t {
     Empty, // Empty cell
     Black, // Cell occupied by black stone
@@ -32,7 +32,7 @@ constexpr Cell playerToCell(Player p) noexcept
     return p == Player::Black ? Cell::Black : Cell::White;
 }
 
-/// @brief Safely converts a Cell to Player (returns nullopt for Empty)
+// Safely converts a Cell to Player (returns nullopt for Empty)
 constexpr std::optional<Player> cellToPlayer(Cell c) noexcept
 {
     if (c == Cell::Empty)
@@ -45,43 +45,43 @@ constexpr Player opponent(Player p) noexcept
     return p == Player::Black ? Player::White : Player::Black;
 }
 
-/// @brief Position on the game board (0-based coordinates)
+// Position on the game board (0-based coordinates)
 struct Pos {
     uint8_t x { 0 }, y { 0 }; // 0..18
 
-    /// @brief Equality comparison
+    // Equality comparison
     constexpr bool operator==(const Pos& other) const noexcept { return x == other.x && y == other.y; }
     constexpr bool operator!=(const Pos& other) const noexcept { return !(*this == other); }
 
-    /// @brief Check if position is within board bounds
+    // Check if position is within board bounds
     constexpr bool isValid() const noexcept { return x < BOARD_SIZE && y < BOARD_SIZE; }
 
-    /// @brief Convert to linear index (for arrays)
+    // Convert to linear index (for arrays)
     constexpr uint16_t toIndex() const noexcept { return static_cast<uint16_t>(y * BOARD_SIZE + x); }
 
-    /// @brief Create position from linear index
+    // Create position from linear index
     static constexpr Pos fromIndex(uint16_t idx) noexcept
     {
         return { static_cast<uint8_t>(idx % BOARD_SIZE), static_cast<uint8_t>(idx / BOARD_SIZE) };
     }
 };
 
-/// @brief Represents a move in the game
+// Represents a move in the game
 struct Move {
     Pos pos {};
     Player by { Player::Black };
 
-    /// @brief Check if the move is valid (position within bounds)
+    // Check if the move is valid (position within bounds)
     constexpr bool isValid() const noexcept { return pos.isValid(); }
 
-    /// @brief Equality comparison
+    // Equality comparison
     constexpr bool operator==(const Move& other) const noexcept
     {
         return pos == other.pos && by == other.by;
     }
 };
 
-/// @brief Represents the rules of the game
+// Represents the rules of the game
 struct RuleSet {
     bool forbidDoubleThree = true;
     bool allowFiveOrMore = true;
@@ -89,7 +89,7 @@ struct RuleSet {
     uint8_t captureWinPairs = 5; // 5 pairs = 10 stones
 };
 
-/// @brief Represents the configuration for the engine
+// Represents the configuration for the engine
 struct EngineConfig {
     RuleSet rules {}; // Game rules
     int maxDepthHint = 6; // Maximum depth for search
@@ -99,7 +99,7 @@ struct EngineConfig {
     uint32_t randomSeed = 0; // Seed for the random number generator
 };
 
-/// @brief Represents captured stone pairs count
+// Represents captured stone pairs count
 struct CaptureCount {
     int black = 0;
     int white = 0;
@@ -110,7 +110,7 @@ struct CaptureCount {
     }
 };
 
-/// @brief Result of attempting to play a move
+// Result of attempting to play a move
 enum class PlayErrorCode : uint8_t {
     None = 0,
     InvalidPosition,
@@ -141,7 +141,7 @@ struct PlayResult {
     }
 };
 
-/// @brief Game status/outcome
+// Game status/outcome
 enum class GameStatus {
     Ongoing, // Game is still in progress
     WinByAlign, // Won by aligning 5 stones
@@ -149,7 +149,7 @@ enum class GameStatus {
     Draw // Game ended in a draw
 };
 
-/// @brief Complete game state for serialization/persistence
+// Complete game state for serialization/persistence
 struct GameState {
     std::array<Cell, BOARD_SIZE * BOARD_SIZE> board;
     std::vector<Move> moveHistory;
@@ -162,7 +162,7 @@ struct GameState {
     static GameState fromBoard(const class IBoardView& boardView, const std::vector<Move>& history, const RuleSet& gameRules);
 };
 
-/// @brief Type alias for Position (more semantic for some contexts)
+// Type alias for Position (more semantic for some contexts)
 using Position = Pos;
 
 // I/O operators for debugging (implemented in src/core/Types.cpp)
