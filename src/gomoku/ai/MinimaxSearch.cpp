@@ -6,7 +6,6 @@
 namespace gomoku {
 
 // Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
-
 std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, SearchStats* stats)
 {
     if (stats)
