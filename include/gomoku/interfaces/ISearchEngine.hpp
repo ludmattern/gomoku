@@ -7,7 +7,7 @@
 namespace gomoku {
 
 /**
- * @brief Interface for AI/MinimaxSearch engine capabilities
+ * Interface for AI/MinimaxSearch engine capabilities
  *
  * Separates AI logic from game orchestration,
  * allowing different AI implementations to be plugged in.

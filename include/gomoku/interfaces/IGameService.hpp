@@ -7,7 +7,7 @@
 namespace gomoku {
 
 /**
- * @brief Interface for game orchestration and business logic
+ * Interface for game orchestration and business logic
  *
  * This interface defines the contract for game management,
  * separating business logic from implementation details.

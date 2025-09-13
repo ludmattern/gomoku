@@ -6,7 +6,7 @@
 namespace gomoku::ai {
 
 /**
- * @brief Concrete implementation of ISearchEngine using minimax search
+ * Concrete implementation of ISearchEngine using minimax search
  *
  * Wraps the existing MinimaxSearch class to implement the ISearchEngine interface,
  * providing clean separation between AI concerns and game orchestration.

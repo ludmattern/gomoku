@@ -6,7 +6,7 @@
 namespace gomoku::application {
 
 /**
- * @brief Validation basique d'un coup côté service avant tentative d'application sur Board.
+ * Validation basique d'un coup côté service avant tentative d'application sur Board.
  *
  * Sépare la logique de pré-validation (tour du joueur, case libre, partie en cours)
  * de la logique interne plus coûteuse (simulation complète avec captures, etc.).

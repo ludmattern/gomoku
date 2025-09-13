@@ -7,7 +7,7 @@ namespace gomoku {
 class IBoardView; // forward
 
 /**
- * @brief Interface d'observation des évènements de partie.
+ * Interface d'observation des évènements de partie.
  *
  * Permet à la couche UI / logging / analytics d'être notifiée
  * sans devoir "poll" en permanence l'état du service.
