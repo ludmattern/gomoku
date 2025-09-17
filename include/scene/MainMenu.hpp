@@ -12,6 +12,7 @@ public:
     bool handleInput(sf::Event& event) override;
     void update(sf::Time& deltaTime) override;
     void render(sf::RenderTarget& target) const override;
+    void onThemeChanged() override;
 
 private:
     void onPlayClicked();

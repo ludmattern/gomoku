@@ -1,6 +1,7 @@
 #include "gui/GameWindow.hpp"
 #include "scene/GameScene.hpp"
 #include "scene/GameSelect.hpp"
+#include "scene/Settings.hpp"
 #include "scene/MainMenu.hpp"
 #include <cmath>
 #include <iostream>
@@ -26,6 +27,8 @@ void GameWindow::init()
     context_ = Context();
     context_.window = &window_;
     context_.resourceManager = &resourceManager_;
+    context_.music = &music_;
+    context_.sfx = &sfx_;
 
     if (!resourceManager_.init()) {
         std::cerr << "Failed to initialize ResourceManager" << std::endl;
@@ -40,6 +43,13 @@ void GameWindow::init()
     introActive_ = radialMask_.loadFromFile("assets/shaders/radial_mask.frag", sf::Shader::Type::Fragment);
     introClock_.restart();
     std::cout << "[INIT] Shader loaded? " << (introActive_ ? "yes" : "no") << std::endl;
+
+    // Start menu music if available (silent if missing)
+    if (music_.openFromFile("assets/audio/menu_theme.ogg")) {
+        music_.setLoop(true);
+        music_.setVolume(10.f);
+        music_.play();
+    }
 
     currentScene_ = std::make_unique<MainMenu>(context_);
     currentScene_->onEnter();
@@ -124,6 +134,18 @@ void GameWindow::run()
         handleEvents();
         if (!isRunning_)
             break;
+        // Propagation changement de thème
+        if (context_.themeChanged) {
+            // Rebind background
+            if (backgroundSprite_) {
+                try {
+                    backgroundSprite_->setTexture(resourceManager_.getTexture("background"), true);
+                } catch (...) {}
+            }
+            if (currentScene_)
+                currentScene_->onThemeChanged();
+            context_.themeChanged = false;
+        }
         if (context_.inGame && !context_.showGameSelectMenu && !context_.showMainMenu) {
             if (currentScene_)
                 currentScene_->onExit();
@@ -140,6 +162,12 @@ void GameWindow::run()
             std::cout << "[RUN] switch -> GameSelect" << std::endl;
             currentScene_ = std::make_unique<GameSelectScene>(context_);
             context_.showGameSelectMenu = false;
+        } else if (context_.showSettingsMenu && !context_.inGame && !context_.showMainMenu && !context_.showGameSelectMenu) {
+            if (currentScene_)
+                currentScene_->onExit();
+            std::cout << "[RUN] switch -> Settings" << std::endl;
+            currentScene_ = std::make_unique<gomoku::scene::SettingsScene>(context_);
+            context_.showSettingsMenu = false;
         } else if (context_.showMainMenu && !context_.inGame && !context_.showGameSelectMenu) {
             if (currentScene_)
                 currentScene_->onExit();

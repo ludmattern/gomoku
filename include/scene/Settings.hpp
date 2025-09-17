@@ -4,10 +4,10 @@
 
 namespace gomoku::scene {
 
-class GameSelectScene : public AScene {
+class SettingsScene : public AScene {
 public:
-    explicit GameSelectScene(Context& ctx);
-    ~GameSelectScene() override = default;
+    explicit SettingsScene(Context& ctx);
+    ~SettingsScene() override = default;
 
     void update(sf::Time& deltaTime) override;
     void render(sf::RenderTarget& target) const override;
@@ -15,13 +15,16 @@ public:
     void onThemeChanged() override;
 
 private:
-    void onPlayerVsPlayerClicked();
-    void onPlayerVsBotClicked();
+    void applyTheme(const std::string& themeName);
     void onBackClicked();
 
-    gomoku::ui::Button playerVsPlayerButton_;
-    gomoku::ui::Button playerVsBotButton_;
-    gomoku::ui::Button backButton_;
+    gomoku::ui::Button defaultBtn_;
+    gomoku::ui::Button darkBtn_;
+    gomoku::ui::Button halloweenBtn_;
+    gomoku::ui::Button pastelBtn_;
+    gomoku::ui::Button backBtn_;
 };
 
 } // namespace gomoku::scene
+
+

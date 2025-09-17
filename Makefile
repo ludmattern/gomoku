@@ -53,6 +53,7 @@ GUI_SRC = \
 	$(SRC_DIR)/scene/AScene.cpp \
 	$(SRC_DIR)/scene/GameScene.cpp \
 	$(SRC_DIR)/scene/GameSelect.cpp \
+	$(SRC_DIR)/scene/Settings.cpp \
 	$(SRC_DIR)/scene/MainMenu.cpp \
 	$(SRC_DIR)/gui/GameWindow.cpp \
 	$(SRC_DIR)/gui/GameBoardRenderer.cpp \

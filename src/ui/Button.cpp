@@ -1,6 +1,7 @@
 #include "ui/Button.hpp"
 
 #include <algorithm>
+#include "scene/GameSelect.hpp"
 
 namespace gomoku::ui {
 
@@ -57,6 +58,11 @@ void Button::setCallback(const std::function<void()>& callback)
     callback_ = callback;
 }
 
+void Button::setHoverCallback(const std::function<void()>& onHover)
+{
+    onHover_ = onHover;
+}
+
 void Button::update(const sf::Time& deltaTime)
 {
     (void)deltaTime;
@@ -89,7 +95,12 @@ bool Button::handleInput(const sf::Event& event, const sf::RenderWindow& window)
         return false;
     if (event.type == sf::Event::MouseMoved) {
         sf::Vector2f mousePos = window.mapPixelToCoords(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+        wasHovered_ = isHovered_;
         isHovered_ = shape_.getGlobalBounds().contains(mousePos);
+        if (!wasHovered_ && isHovered_) {
+            if (onHover_)
+                onHover_();
+        }
         if (sprite_ && texture_) {
             sprite_->setColor(isHovered_ ? sf::Color(230, 230, 230) : sf::Color(255, 255, 255));
         } else {

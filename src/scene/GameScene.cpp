@@ -60,6 +60,17 @@ GameScene::GameScene(Context& context, bool vsAi)
 
 GameScene::~GameScene() = default;
 
+void GameScene::onThemeChanged()
+{
+    if (!context_.resourceManager)
+        return;
+    // Rebind textures sur le renderer
+    const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setTextures(
+        context_.resourceManager->getTexture("board"),
+        context_.resourceManager->getTexture("pawn1"),
+        context_.resourceManager->getTexture("pawn2"));
+}
+
 bool GameScene::handleInput(sf::Event& event)
 {
     if (context_.window && backButton_.handleInput(event, *context_.window))
@@ -124,6 +135,12 @@ bool GameScene::handleInput(sf::Event& event)
                         if (result.ok) {
                             auto snap1 = gameSession_.snapshot();
                             const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setBoardView(snap1.view);
+                            // SFX: pose de pion selon couleur jouée
+                            playSfx(snap1.toPlay == gomoku::Player::Black ? "place_stone_white" : "place_stone_black", 70.f);
+                            // Capture détectée ? compare les paires capturées avant/après
+                            if (snap1.captures.first > before.captures.first || snap1.captures.second > before.captures.second) {
+                                playSfx("capture", 80.f);
+                            }
                             // Check end of game
                             if (snap1.status != gomoku::GameStatus::Ongoing)
                                 return true;
@@ -157,12 +174,17 @@ void GameScene::update(sf::Time& deltaTime)
     if (pendingAi_ && framePresented_) {
         pendingAi_ = false;
         aiThinking_ = true;
+        auto before = gameSession_.snapshot();
         auto t0 = std::chrono::steady_clock::now();
         auto aiResult = gameSession_.playAI(aiBudgetMs_);
         auto t1 = std::chrono::steady_clock::now();
         lastAiMs_ = (int)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
         auto snap = gameSession_.snapshot();
         const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setBoardView(snap.view);
+        // Capture détectée côté IA ?
+        if (snap.captures.first > before.captures.first || snap.captures.second > before.captures.second) {
+            playSfx("capture", 80.f);
+        }
         aiThinking_ = false;
         // Start short cooldown to swallow any clicks pressed during AI thinking
         inputClock_.restart();
@@ -235,6 +257,7 @@ void GameScene::onBackClicked()
 {
     context_.inGame = false;
     context_.showMainMenu = true;
+	playMusic("assets/audio/menu_theme.ogg", true, 10.f);
 }
 
 } // namespace gomoku::scene

@@ -1,6 +1,7 @@
 #pragma once
 #include "gui/ResourceManager.hpp"
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 
 namespace gomoku::gui {
 class GameBoardRenderer;
@@ -11,12 +12,17 @@ namespace gomoku::scene {
 struct Context {
     sf::RenderWindow* window = nullptr;
     gomoku::gui::ResourceManager* resourceManager = nullptr;
+    sf::Music* music = nullptr;
+    sf::Sound* sfx = nullptr;
     bool shouldQuit = false;
     bool inGame = false;
     bool showGameSelectMenu = false;
+    bool showSettingsMenu = false;
     bool showMainMenu = false;
     bool vsAi = false;
     gomoku::gui::GameBoardRenderer* boardRenderer = nullptr;
+    std::string theme = "default";
+    bool themeChanged = false;
 };
 
 } // namespace gomoku::scene

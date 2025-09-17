@@ -15,6 +15,7 @@ public:
     void setSize(const sf::Vector2f& size);
     void setScale(float scale); // uniform scale
     void setCallback(const std::function<void()>& callback);
+    void setHoverCallback(const std::function<void()>& onHover);
     void setTexture(const sf::Texture* texture);
 
     void update(const sf::Time& deltaTime);
@@ -24,7 +25,9 @@ public:
 private:
     sf::RectangleShape shape_;
     std::function<void()> callback_;
+    std::function<void()> onHover_;
     bool isHovered_ { false };
+    bool wasHovered_ { false };
     bool isPressed_ { false };
     float scale_ = 1.f;
     const sf::Texture* texture_ { nullptr }; // not owned
