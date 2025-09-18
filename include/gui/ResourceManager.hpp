@@ -25,6 +25,9 @@ public:
     bool hasSound(const std::string& name) const;
     const sf::SoundBuffer* getSound(const std::string& name) const;
 
+    // Reload all SFX for a given theme under canonical keys (with fallback to default)
+    bool setAudioPackage(const std::string& theme);
+
     // Themes: switch and reload textures for selected theme
     bool setTexturePackage(const std::string& theme);
     const std::string& currentTexturePackage() const { return texturePath_; }

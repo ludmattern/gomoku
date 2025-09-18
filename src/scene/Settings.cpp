@@ -1,4 +1,5 @@
 #include "scene/Settings.hpp"
+#include <iostream>
 
 namespace gomoku::scene {
 
@@ -75,10 +76,17 @@ void SettingsScene::applyTheme(const std::string& themeName)
 {
     if (!context_.resourceManager)
         return;
-    if (context_.resourceManager->setTexturePackage(themeName)) {
+    const bool texOk = context_.resourceManager->setTexturePackage(themeName);
+    const bool audOk = context_.resourceManager->setAudioPackage(themeName);
+
+    if (audOk && texOk) {
         context_.theme = themeName;
         context_.themeChanged = true;
-        // Si en jeu on rebindrait les textures; ici on reste dans Settings
+        std::string musicPath = std::string("assets/audio/") + themeName + "/menu_theme.ogg";
+        playMusic(musicPath.c_str(), true, 10.f);
+        std::cout << "Theme applied: " << themeName << std::endl;
+    } else {
+        std::cerr << "Failed to apply theme " << themeName << std::endl;
     }
 }
 

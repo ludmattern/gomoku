@@ -13,7 +13,7 @@ struct Context {
     sf::RenderWindow* window = nullptr;
     gomoku::gui::ResourceManager* resourceManager = nullptr;
     sf::Music* music = nullptr;
-    sf::Sound* sfx = nullptr;
+    std::vector<sf::Sound>* sfxVoices = nullptr; // pool de voix SFX
     bool shouldQuit = false;
     bool inGame = false;
     bool showGameSelectMenu = false;

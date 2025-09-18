@@ -257,7 +257,8 @@ void GameScene::onBackClicked()
 {
     context_.inGame = false;
     context_.showMainMenu = true;
-	playMusic("assets/audio/menu_theme.ogg", true, 10.f);
+    std::string musicPath = std::string("assets/audio/") + context_.theme + "/menu_theme.ogg";
+	playMusic(musicPath.c_str(), true, 10.f);
 }
 
 } // namespace gomoku::scene

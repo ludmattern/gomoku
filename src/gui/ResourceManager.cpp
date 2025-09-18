@@ -42,15 +42,8 @@ bool ResourceManager::init()
     if (!loadTexture("empty_background", texturePath_ + "background.png"))
         return false;
 
-    // Optional audio assets
-    loadSoundOptional("ui_hover", "assets/audio/ui_hover.wav");
-    loadSoundOptional("ui_click", "assets/audio/ui_click.wav");
-    loadSoundOptional("place_stone_white", "assets/audio/place_white.wav");
-    loadSoundOptional("place_stone_black", "assets/audio/place_black.wav");
-    loadSoundOptional("capture", "assets/audio/capture.wav");
-    loadSoundOptional("win", "assets/audio/win.wav");
-    loadSoundOptional("lose", "assets/audio/lose.wav");
-    loadSoundOptional("draw", "assets/audio/draw.wav");
+    setAudioPackage("default");
+
 
     std::cout << "ResourceManager initialized" << std::endl;
     return true;
@@ -178,6 +171,34 @@ const sf::SoundBuffer* ResourceManager::getSound(const std::string& name) const
     if (it == sounds_.end())
         return nullptr;
     return &it->second;
+}
+
+bool ResourceManager::setAudioPackage(const std::string& theme)
+{
+    // canonical SFX names; prefer themed folder, fallback to default
+    const char* names[] = {
+        "ui_hover",
+        "ui_click",
+        "place_white",
+        "place_black",
+        "capture",
+        "win",
+        "lose",
+        "draw"
+    };
+    std::string themed = std::string("assets/audio/") + theme + "/";
+    std::string deflt = std::string("assets/audio/default/");
+    bool ok = true;
+    for (auto* nm : names) {
+        // Try themed first; if missing, keep or fall back to default
+        if (!loadSoundOptional(nm, themed + nm + std::string(".wav"))) {
+            if (!loadSoundOptional(nm, deflt + nm + std::string(".wav"))) {
+                // Leave existing buffer if previously loaded
+                ok = false;
+            }
+        }
+    }
+    return ok;
 }
 
 } // namespace gomoku::gui

@@ -9,14 +9,26 @@ AScene::AScene(Context& context)
 
 void AScene::playSfx(const char* name, float volume) const
 {
-    if (!context_.resourceManager || !context_.sfx)
+    if (!context_.resourceManager || !context_.sfxVoices)
         return;
     auto* buffer = context_.resourceManager->getSound(name);
     if (!buffer)
         return;
-    context_.sfx->setBuffer(*buffer);
-    context_.sfx->setVolume(volume);
-    context_.sfx->play();
+    // Find a free voice (stopped) or the first one
+    for (auto& voice : *context_.sfxVoices) {
+        if (voice.getStatus() == sf::Sound::Status::Stopped) {
+            voice.setBuffer(*buffer);
+            voice.setVolume(volume);
+            voice.play();
+            return;
+        }
+    }
+    // If all busy, steal the first voice
+    auto& v = (*context_.sfxVoices)[0];
+    v.stop();
+    v.setBuffer(*buffer);
+    v.setVolume(volume);
+    v.play();
 }
 
 void AScene::playMusic(const char* path, bool loop, float volume) const

@@ -75,14 +75,20 @@ void GameSelectScene::onPlayerVsPlayerClicked()
 {
     context_.vsAi = false;
     context_.inGame = true;
-    playMusic("assets/audio/ingame_theme.ogg", true, 10.f);
+    {
+        std::string path = std::string("assets/audio/") + context_.theme + "/ingame_theme.ogg";
+        playMusic(path.c_str(), true, 10.f);
+    }
 }
 
 void GameSelectScene::onPlayerVsBotClicked()
 {
     context_.vsAi = true;
     context_.inGame = true;
-    playMusic("assets/audio/ingame_theme.ogg", true, 10.f);
+    {
+        std::string path = std::string("assets/audio/") + context_.theme + "/ingame_theme.ogg";
+        playMusic(path.c_str(), true, 10.f);
+    }
 }
 
 void GameSelectScene::onBackClicked()
