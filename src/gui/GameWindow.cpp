@@ -28,7 +28,8 @@ void GameWindow::init()
     context_.window = &window_;
     context_.resourceManager = &resourceManager_;
     context_.music = &music_;
-    context_.sfx = &sfx_;
+    sfxVoices_.resize(8); // 8 voix SFX
+    context_.sfxVoices = &sfxVoices_;
 
     if (!resourceManager_.init()) {
         std::cerr << "Failed to initialize ResourceManager" << std::endl;
@@ -45,7 +46,7 @@ void GameWindow::init()
     std::cout << "[INIT] Shader loaded? " << (introActive_ ? "yes" : "no") << std::endl;
 
     // Start menu music if available (silent if missing)
-    if (music_.openFromFile("assets/audio/menu_theme.ogg")) {
+    if (music_.openFromFile("assets/audio/default/menu_theme.ogg")) {
         music_.setLoop(true);
         music_.setVolume(10.f);
         music_.play();

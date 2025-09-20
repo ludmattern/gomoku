@@ -33,7 +33,7 @@ private:
     sf::Sprite* backgroundSprite_ { nullptr };
     // Audio
     sf::Music music_;
-    sf::Sound sfx_;
+    std::vector<sf::Sound> sfxVoices_;
     std::unique_ptr<gomoku::scene::AScene> currentScene_;
     sf::Clock clock_;
     sf::Time deltaTime_;

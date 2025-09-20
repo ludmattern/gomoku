@@ -2,6 +2,7 @@
 #include "scene/AScene.hpp"
 #include "ui/Button.hpp"
 
+
 namespace gomoku::scene {
 
 class SettingsScene : public AScene {
