@@ -41,6 +41,7 @@ TEST_BIN = bin/tests_runner        # test binary (without SFML)
 CORE_SRC = \
 	$(SRC_DIR)/gomoku/core/Board.cpp \
 	$(SRC_DIR)/gomoku/core/Types.cpp \
+	$(SRC_DIR)/gomoku/core/Logger.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearch.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
 	$(SRC_DIR)/gomoku/ai/CandidateGenerator.cpp \
@@ -105,6 +106,7 @@ debug: $(TARGET)
 # Clean rule
 clean:
 	@rm -rf $(BUILD_DIR)
+	@rm -rf logs/
 
 # Full clean rule
 fclean: clean
