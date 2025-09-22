@@ -1,5 +1,6 @@
 // MinimaxSearch.cpp
 #include "gomoku/ai/MinimaxSearch.hpp"
+#include "gomoku/ai/CandidateGenerator.hpp"
 #include "gomoku/core/Board.hpp"
 #include <algorithm>
 #include <limits>
@@ -260,7 +261,8 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
 std::vector<Move> MinimaxSearch::orderedMoves(Board& b, const RuleSet& rules, Player toPlay) const
 {
     (void)rules;
-    auto ms = b.legalMoves(toPlay, rules);
+    CandidateConfig cc;
+    auto ms = CandidateGenerator::generate(b, rules, toPlay, cc);
     if (ms.size() <= 1)
         return ms;
 
