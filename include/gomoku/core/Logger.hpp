@@ -129,9 +129,3 @@ private:
 #define LOG_INFO(msg) gomoku::Logger::getInstance().info(msg, __FILE__, __LINE__, __func__)
 #define LOG_WARNING(msg) gomoku::Logger::getInstance().warning(msg, __FILE__, __LINE__, __func__)
 #define LOG_ERROR(msg) gomoku::Logger::getInstance().error(msg, __FILE__, __LINE__, __func__)
-
-// Formatted logging macros (with Python-style format)
-#define LOG_DEBUG_F(fmt, ...) gomoku::Logger::getInstance().debug(fmt, ##__VA_ARGS__)
-#define LOG_INFO_F(fmt, ...) gomoku::Logger::getInstance().info(fmt, ##__VA_ARGS__)
-#define LOG_WARNING_F(fmt, ...) gomoku::Logger::getInstance().warning(fmt, ##__VA_ARGS__)
-#define LOG_ERROR_F(fmt, ...) gomoku::Logger::getInstance().error(fmt, ##__VA_ARGS__)
