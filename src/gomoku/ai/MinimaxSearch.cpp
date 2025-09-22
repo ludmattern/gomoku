@@ -203,8 +203,13 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
     }
 
     if (depth == 0) {
-        int val = evaluate(b, maxPlayer);
-        return { val, std::nullopt };
+        // Au lieu d'évaluer directement, utiliser la recherche de quiescence
+        if (cfg.enableQuiescence) {
+            return quiescence(b, rules, alpha, beta, maxPlayer, stats);
+        } else {
+            int val = evaluate(b, maxPlayer);
+            return { val, std::nullopt };
+        }
     }
 
     Player toPlay = b.toPlay();
@@ -434,6 +439,247 @@ int MinimaxSearch::evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who
 
     int open = (openA ? 1 : 0) + (openB ? 1 : 0);
     return scorePattern(false /* evaluation context */, len, open);
+}
+
+// ---------------- Recherche de quiescence ----------------
+MinimaxSearch::ABResult MinimaxSearch::quiescence(Board& b, const RuleSet& rules, int alpha, int beta, Player maxPlayer, SearchStats* stats, int qDepth)
+{
+    if (stats)
+        ++stats->nodes;
+    ++visited;
+
+    if (expired()) {
+        timeUp = true;
+        return { evaluate(b, maxPlayer), std::nullopt };
+    }
+
+    // Limiter la profondeur de quiescence
+    if (qDepth >= cfg.maxQuiescenceDepth) {
+        return { evaluate(b, maxPlayer), std::nullopt };
+    }
+
+    // Évaluation statique de la position
+    int standPat = evaluate(b, maxPlayer);
+
+    // Fin de partie ?
+    if (b.status() != GameStatus::Ongoing) {
+        int val = 0;
+        if (b.status() == GameStatus::WinByAlign || b.status() == GameStatus::WinByCapture) {
+            Player winner = opponent(b.toPlay());
+            val = (winner == maxPlayer) ? 1'000'000 : -1'000'000;
+        }
+        return { val, std::nullopt };
+    }
+
+    Player toPlay = b.toPlay();
+
+    // Si la position est calme, retourner l'évaluation statique
+    if (isQuiet(b, rules, toPlay)) {
+        return { standPat, std::nullopt };
+    }
+
+    // Beta cutoff
+    if (toPlay == maxPlayer && standPat >= beta) {
+        return { beta, std::nullopt };
+    }
+
+    // Alpha cutoff
+    if (toPlay != maxPlayer && standPat <= alpha) {
+        return { alpha, std::nullopt };
+    }
+
+    // Mise à jour de alpha pour le joueur maximisant
+    if (toPlay == maxPlayer) {
+        alpha = std::max(alpha, standPat);
+    } else {
+        beta = std::min(beta, standPat);
+    }
+
+    // Générer seulement les mouvements tactiques
+    auto moves = tacticalMoves(b, rules, toPlay);
+    if (moves.empty()) {
+        return { standPat, std::nullopt };
+    }
+
+    std::optional<Move> bestMove {};
+
+    if (toPlay == maxPlayer) {
+        int best = standPat;
+        for (const auto& m : moves) {
+            if (expired()) {
+                timeUp = true;
+                break;
+            }
+            if (!b.play(m, rules, nullptr))
+                continue;
+            auto child = quiescence(b, rules, alpha, beta, maxPlayer, stats, qDepth + 1);
+            b.undo();
+            if (timeUp)
+                break;
+            if (child.score > best) {
+                best = child.score;
+                bestMove = m;
+            }
+            alpha = std::max(alpha, child.score);
+            if (alpha >= beta)
+                break;
+        }
+        return { best, bestMove };
+    } else {
+        int best = standPat;
+        for (const auto& m : moves) {
+            if (expired()) {
+                timeUp = true;
+                break;
+            }
+            if (!b.play(m, rules, nullptr))
+                continue;
+            auto child = quiescence(b, rules, alpha, beta, maxPlayer, stats, qDepth + 1);
+            b.undo();
+            if (timeUp)
+                break;
+            if (child.score < best) {
+                best = child.score;
+                bestMove = m;
+            }
+            beta = std::min(beta, child.score);
+            if (beta <= alpha)
+                break;
+        }
+        return { best, bestMove };
+    }
+}
+
+// ---------------- Détection des mouvements tactiques ----------------
+std::vector<Move> MinimaxSearch::tacticalMoves(Board& b, const RuleSet& rules, Player toPlay) const
+{
+    std::vector<Move> allMoves = orderedMoves(b, rules, toPlay);
+    std::vector<Move> tactical;
+
+    // Filtrer les mouvements tactiquement importants
+    for (const auto& move : allMoves) {
+        if (isTacticalMove(b, move.pos.x, move.pos.y, toPlay)) {
+            tactical.push_back(move);
+        }
+        // Limiter le nombre de mouvements tactiques pour éviter l'explosion
+        if (tactical.size() >= 8)
+            break;
+    }
+
+    return tactical;
+}
+
+bool MinimaxSearch::isTacticalMove(const Board& b, uint8_t x, uint8_t y, Player toPlay) const
+{
+    if (b.at(x, y) != Cell::Empty)
+        return false;
+
+    const Cell me = (toPlay == Player::Black ? Cell::Black : Cell::White);
+    const Cell opp = (me == Cell::Black ? Cell::White : Cell::Black);
+
+    auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
+
+    static constexpr int DX[4] = { 1, 0, 1, 1 };
+    static constexpr int DY[4] = { 0, 1, 1, -1 };
+
+    for (int d = 0; d < 4; ++d) {
+        // Vérifier les menaces de victoire (alignements de 4)
+        int len = 1;
+        bool openA = false, openB = false;
+
+        // Extension vers l'arrière
+        int xx = (int)x - DX[d], yy = (int)y - DY[d];
+        while (inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == me) {
+            ++len;
+            xx -= DX[d];
+            yy -= DY[d];
+        }
+        openA = inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == Cell::Empty;
+
+        // Extension vers l'avant
+        xx = (int)x + DX[d];
+        yy = (int)y + DY[d];
+        while (inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == me) {
+            ++len;
+            xx += DX[d];
+            yy += DY[d];
+        }
+        openB = inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == Cell::Empty;
+
+        int open = (openA ? 1 : 0) + (openB ? 1 : 0);
+
+        // Menace de victoire directe (4 en ligne)
+        if (len >= 4) {
+            return true;
+        }
+
+        // Menace forte (3 ouvert ou 4 semi-ouvert)
+        if ((len == 3 && open == 2) || (len == 4 && open >= 1)) {
+            return true;
+        }
+
+        // Vérifier les blocages de menaces adverses
+        len = 1;
+        openA = openB = false;
+
+        // Extension vers l'arrière pour l'adversaire
+        xx = (int)x - DX[d];
+        yy = (int)y - DY[d];
+        while (inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == opp) {
+            ++len;
+            xx -= DX[d];
+            yy -= DY[d];
+        }
+        openA = inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == Cell::Empty;
+
+        // Extension vers l'avant pour l'adversaire
+        xx = (int)x + DX[d];
+        yy = (int)y + DY[d];
+        while (inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == opp) {
+            ++len;
+            xx += DX[d];
+            yy += DY[d];
+        }
+        openB = inside(xx, yy) && b.at(static_cast<uint8_t>(xx), static_cast<uint8_t>(yy)) == Cell::Empty;
+
+        open = (openA ? 1 : 0) + (openB ? 1 : 0);
+
+        // Blocage de menace de victoire adverse
+        if (len >= 4) {
+            return true;
+        }
+
+        // Blocage de menace forte adverse
+        if ((len == 3 && open == 2) || (len == 4 && open >= 1)) {
+            return true;
+        }
+
+        // Vérifier les opportunities de capture (pattern XOOY)
+        int x1 = (int)x + DX[d], y1 = (int)y + DY[d];
+        int x2 = (int)x + 2 * DX[d], y2 = (int)y + 2 * DY[d];
+        int x3 = (int)x + 3 * DX[d], y3 = (int)y + 3 * DY[d];
+        if (inside(x3, y3) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == opp && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == opp && b.at(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)) == me) {
+            return true;
+        }
+
+        int X1 = (int)x - DX[d], Y1 = (int)y - DY[d];
+        int X2 = (int)x - 2 * DX[d], Y2 = (int)y - 2 * DY[d];
+        int X3 = (int)x - 3 * DX[d], Y3 = (int)y - 3 * DY[d];
+        if (inside(X3, Y3) && b.at(static_cast<uint8_t>(X1), static_cast<uint8_t>(Y1)) == opp && b.at(static_cast<uint8_t>(X2), static_cast<uint8_t>(Y2)) == opp && b.at(static_cast<uint8_t>(X3), static_cast<uint8_t>(Y3)) == me) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool MinimaxSearch::isQuiet(const Board& b, const RuleSet& rules, Player toPlay) const
+{
+    // Une position est calme s'il n'y a pas de mouvements tactiquement critiques
+    // On fait une copie temporaire du plateau pour éviter la modification
+    Board temp = b;
+    auto tacticals = tacticalMoves(temp, rules, toPlay);
+    return tacticals.empty();
 }
 
 } // namespace gomoku

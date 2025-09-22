@@ -225,8 +225,6 @@ done:
         out.resize(cfg.maxCandidates);
     }
 
-    LOG_INFO("CandidateGenerator: " + std::to_string(out.size()) + " candidates generated for " + playerStr);
-
     if (out.size() < 5) {
         LOG_WARNING("Few candidates generated (" + std::to_string(out.size()) + ") - critical situation");
     }
