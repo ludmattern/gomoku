@@ -19,11 +19,11 @@ ifeq ($(UNAME_S),Darwin)
     SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
     SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
 else
-	# Linux: use a configurable prefix (default $HOME/local if it exists, otherwise /usr)
-	SFML_DIR ?= $(shell if [ -d "$(HOME)/local" ]; then echo "$(HOME)/local"; else echo "/usr"; fi)
-	SFML_INCLUDE = -I$(SFML_DIR)/include
-	SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
-	SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
+    # Linux: use a configurable prefix (default $HOME/local if it exists, otherwise /usr)
+    SFML_DIR ?= $(shell if [ -d "$(HOME)/local" ]; then echo "$(HOME)/local"; else echo "/usr"; fi)
+    SFML_INCLUDE = -I$(SFML_DIR)/include
+    SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+    SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
 endif
 
 # Project directories
@@ -41,8 +41,10 @@ TEST_BIN = bin/tests_runner        # test binary (without SFML)
 CORE_SRC = \
 	$(SRC_DIR)/gomoku/core/Board.cpp \
 	$(SRC_DIR)/gomoku/core/Types.cpp \
+	$(SRC_DIR)/gomoku/core/Logger.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearch.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
+	$(SRC_DIR)/gomoku/ai/CandidateGenerator.cpp \
 	$(SRC_DIR)/gomoku/application/SessionController.cpp \
 	$(SRC_DIR)/gomoku/application/GameService.cpp \
 	$(SRC_DIR)/gomoku/application/MoveValidator.cpp \
@@ -105,6 +107,7 @@ debug: $(TARGET)
 # Clean rule
 clean:
 	@rm -rf $(BUILD_DIR)
+	@rm -rf logs/
 
 # Full clean rule
 fclean: clean

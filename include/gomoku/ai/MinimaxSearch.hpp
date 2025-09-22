@@ -13,9 +13,11 @@ class Board;
 
 struct SearchConfig {
     int timeBudgetMs = 450; // Budget temps (ms) pour la recherche
-    int maxDepthHint = 6; // Profondeur max d'itération
+    int maxDepthHint = 11; // Profondeur max d'itération
     std::size_t ttBytes = (64ull << 20); // Taille allouée à la table de transposition
     unsigned long long nodeCap = 0; // Limite de nœuds dure (0 = désactivée)
+    int maxQuiescenceDepth = 4; // Profondeur maximale pour la recherche de quiescence
+    bool enableQuiescence = true; // Activer/désactiver la recherche de quiescence
 };
 
 class MinimaxSearch {
@@ -36,6 +38,8 @@ public:
         tt.resizeBytes(bytes);
     }
     void setNodeCap(unsigned long long cap) { cfg.nodeCap = cap; }
+    void setMaxQuiescenceDepth(int depth) { cfg.maxQuiescenceDepth = depth; }
+    void setQuiescenceEnabled(bool enabled) { cfg.enableQuiescence = enabled; }
 
     void clearTranspositionTable() { tt.resizeBytes(cfg.ttBytes); }
 
@@ -64,6 +68,7 @@ private:
     };
 
     ABResult alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats);
+    ABResult quiescence(Board& b, const RuleSet& rules, int alpha, int beta, Player maxPlayer, SearchStats* stats, int qDepth = 0);
 
     inline bool expired() const
     {
@@ -77,7 +82,10 @@ private:
 
     // Génération + ordering (léger)
     std::vector<Move> orderedMoves(Board& b, const RuleSet& rules, Player toPlay) const;
+    std::vector<Move> tacticalMoves(Board& b, const RuleSet& rules, Player toPlay) const;
     int quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint8_t y) const;
+    bool isQuiet(const Board& b, const RuleSet& rules, Player toPlay) const;
+    bool isTacticalMove(const Board& b, uint8_t x, uint8_t y, Player toPlay) const;
 };
 
 } // namespace gomoku

@@ -1,4 +1,5 @@
 #include "scene/GameSelect.hpp"
+#include "gomoku/core/Logger.hpp"
 #include "audio/Volumes.hpp"
 
 namespace gomoku::scene {
@@ -6,6 +7,8 @@ namespace gomoku::scene {
 GameSelectScene::GameSelectScene(Context& ctx)
     : AScene(ctx)
 {
+    LOG_INFO("GameSelect: Game selection scene initialization");
+
     playerVsPlayerButton_.setPosition({ 111, 696 });
     playerVsPlayerButton_.setSize({ 300, 70 });
     if (context_.resourceManager && context_.resourceManager->hasTexture("vs_player_button"))
@@ -49,6 +52,8 @@ void GameSelectScene::onThemeChanged()
 {
     if (!context_.resourceManager)
         return;
+
+    LOG_DEBUG("GameSelect: Texture update after theme change");
     if (context_.resourceManager->hasTexture("vs_player_button"))
         playerVsPlayerButton_.setTexture(&context_.resourceManager->getTexture("vs_player_button"));
     if (context_.resourceManager->hasTexture("vs_ai_button"))
@@ -63,8 +68,10 @@ bool GameSelectScene::handleInput(sf::Event& event)
     if (context_.window) {
         auto handleBtn = [&](gomoku::ui::Button& btn) {
             bool c = btn.handleInput(event, *context_.window);
-            if (event.type == sf::Event::MouseButtonReleased && c)
+            if (event.type == sf::Event::MouseButtonReleased && c) {
                 playSfx("ui_click", BUTTON_VOLUME);
+                LOG_DEBUG("GameSelect: Button click detected");
+            }
             return c;
         };
         consumed = handleBtn(playerVsPlayerButton_) || handleBtn(playerVsBotButton_) || handleBtn(backButton_);
@@ -74,26 +81,31 @@ bool GameSelectScene::handleInput(sf::Event& event)
 
 void GameSelectScene::onPlayerVsPlayerClicked()
 {
+    LOG_INFO("GameSelect: Player vs Player mode selected");
     context_.vsAi = false;
     context_.inGame = true;
     {
         std::string path = std::string("assets/audio/") + context_.theme + "/ingame_theme.ogg";
+        LOG_DEBUG("GameSelect: Starting game music: " + path);
         playMusic(path.c_str(), true, MUSIC_VOLUME);
     }
 }
 
 void GameSelectScene::onPlayerVsBotClicked()
 {
+    LOG_INFO("GameSelect: Player vs AI mode selected");
     context_.vsAi = true;
     context_.inGame = true;
     {
         std::string path = std::string("assets/audio/") + context_.theme + "/ingame_theme.ogg";
+        LOG_DEBUG("GameSelect: Starting game music: " + path);
         playMusic(path.c_str(), true, MUSIC_VOLUME);
     }
 }
 
 void GameSelectScene::onBackClicked()
 {
+    LOG_INFO("GameSelect: Back to main menu");
     context_.showGameSelectMenu = false;
     context_.inGame = false;
     context_.showMainMenu = true;
