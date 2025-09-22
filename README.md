@@ -81,17 +81,17 @@ Ce projet consiste à développer un jeu **Gomoku** jouable, integrant une intel
 ### Partie Obligatoire
 
 #### Jgavairo
-- [ ] **Interface graphique :** Interface graphique interactif
-- [ ] **Menu :** Menu Principal
-- [ ] **Timer :** Affichage du temps de réflexion de l'IA
+- [X] **Interface graphique :** Interface graphique interactif
+- [X] **Menu :** Menu Principal
+- [X] **Timer :** Affichage du temps de réflexion de l'IA
 ##### Partie Bonus (à implémenter après validation de la partie obligatoire)
-- [ ] **Sound design :** Musique d'ambiance menu/jeu, effets
-- [ ] **Design avance :** Interface utilisable et agréable
-- [ ] **Game customisation :** Possibilitee de choix pack de theme au lancement (Couleur plateau/jetons)
+- [X] **Sound design :** Musique d'ambiance menu/jeu, effets
+- [X] **Design avance :** Interface utilisable et agréable
+- [X] **Game customisation :** Possibilitee de choix pack de theme au lancement (Couleur plateau/jetons)
 
 #### Lmattern
 - [ ] **Humain vs Humain :** Mode deux joueurs avec suggestions de l'IA
-- [ ] **IA vs Humain :** Jeu contre l'intelligence artificielle
+- [X] **IA vs Humain :** Jeu contre l'intelligence artificielle
 - [ ] **Mode debug :** Visualisation du processus de décision de l'IA
 ##### Partie Bonus (à implémenter après validation de la partie obligatoire)
 - [ ] **Differents niveaux de difficultees :** Choix entre Facile, Moyen et Standard

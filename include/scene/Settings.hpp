@@ -18,12 +18,17 @@ public:
 private:
     void applyTheme(const std::string& themeName);
     void onBackClicked();
+    void toggleSfx();
+    void toggleMusic();
+    void refreshAudioButtonsTextures();
 
     gomoku::ui::Button defaultBtn_;
     gomoku::ui::Button darkBtn_;
     gomoku::ui::Button halloweenBtn_;
     gomoku::ui::Button pastelBtn_;
     gomoku::ui::Button backBtn_;
+    gomoku::ui::Button sfxToggleBtn_;
+    gomoku::ui::Button musicToggleBtn_;
 };
 
 } // namespace gomoku::scene

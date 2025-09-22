@@ -60,7 +60,8 @@ GUI_SRC = \
 	$(SRC_DIR)/scene/MainMenu.cpp \
 	$(SRC_DIR)/gui/GameWindow.cpp \
 	$(SRC_DIR)/gui/GameBoardRenderer.cpp \
-	$(SRC_DIR)/gui/ResourceManager.cpp
+	$(SRC_DIR)/gui/ResourceManager.cpp \
+	$(SRC_DIR)/util/Preferences.cpp
 
 TEST_SRC = \
 	tests/test_min.cpp
@@ -112,6 +113,8 @@ clean:
 # Full clean rule
 fclean: clean
 	@rm -f $(TARGET) $(LIB_NAME) $(TEST_BIN)
+	@echo "[FCLEAN] Removing user config: $(HOME)/.config/gomoku/preferences.json"
+	@rm -f $(HOME)/.config/gomoku/preferences.json 2>/dev/null || true
 
 # Rebuild rule
 re: fclean

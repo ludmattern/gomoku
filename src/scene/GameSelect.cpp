@@ -1,5 +1,6 @@
 #include "scene/GameSelect.hpp"
 #include "gomoku/core/Logger.hpp"
+#include "audio/Volumes.hpp"
 
 namespace gomoku::scene {
 
@@ -14,7 +15,7 @@ GameSelectScene::GameSelectScene(Context& ctx)
         playerVsPlayerButton_.setTexture(&context_.resourceManager->getTexture("vs_player_button"));
     playerVsPlayerButton_.setScale(1.0f);
     playerVsPlayerButton_.setCallback([this]() { onPlayerVsPlayerClicked(); });
-    playerVsPlayerButton_.setHoverCallback([this]() { playSfx("ui_hover", 40.f); });
+    playerVsPlayerButton_.setHoverCallback([this]() { playSfx("ui_hover", UI_HOVER_VOLUME); });
 
     playerVsBotButton_.setPosition({ 693, 696 });
     playerVsBotButton_.setSize({ 300, 70 });
@@ -22,7 +23,7 @@ GameSelectScene::GameSelectScene(Context& ctx)
         playerVsBotButton_.setTexture(&context_.resourceManager->getTexture("vs_ai_button"));
     playerVsBotButton_.setScale(1.0f);
     playerVsBotButton_.setCallback([this]() { onPlayerVsBotClicked(); });
-    playerVsBotButton_.setHoverCallback([this]() { playSfx("ui_hover", 40.f); });
+    playerVsBotButton_.setHoverCallback([this]() { playSfx("ui_hover", UI_HOVER_VOLUME); });
 
     backButton_.setPosition({ 1284, 695.5f });
     backButton_.setSize({ 300, 70 });
@@ -30,7 +31,7 @@ GameSelectScene::GameSelectScene(Context& ctx)
         backButton_.setTexture(&context_.resourceManager->getTexture("back_button"));
     backButton_.setScale(1.0f);
     backButton_.setCallback([this]() { onBackClicked(); });
-    backButton_.setHoverCallback([this]() { playSfx("ui_hover", 40.f); });
+    backButton_.setHoverCallback([this]() { playSfx("ui_hover", UI_HOVER_VOLUME); });
 }
 
 void GameSelectScene::update(sf::Time& deltaTime)
@@ -68,7 +69,7 @@ bool GameSelectScene::handleInput(sf::Event& event)
         auto handleBtn = [&](gomoku::ui::Button& btn) {
             bool c = btn.handleInput(event, *context_.window);
             if (event.type == sf::Event::MouseButtonReleased && c) {
-                playSfx("ui_click", 80.f);
+                playSfx("ui_click", BUTTON_VOLUME);
                 LOG_DEBUG("GameSelect: Button click detected");
             }
             return c;
@@ -86,7 +87,7 @@ void GameSelectScene::onPlayerVsPlayerClicked()
     {
         std::string path = std::string("assets/audio/") + context_.theme + "/ingame_theme.ogg";
         LOG_DEBUG("GameSelect: Starting game music: " + path);
-        playMusic(path.c_str(), true, 10.f);
+        playMusic(path.c_str(), true, MUSIC_VOLUME);
     }
 }
 
@@ -98,7 +99,7 @@ void GameSelectScene::onPlayerVsBotClicked()
     {
         std::string path = std::string("assets/audio/") + context_.theme + "/ingame_theme.ogg";
         LOG_DEBUG("GameSelect: Starting game music: " + path);
-        playMusic(path.c_str(), true, 10.f);
+        playMusic(path.c_str(), true, MUSIC_VOLUME);
     }
 }
 

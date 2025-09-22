@@ -4,6 +4,8 @@
 #include "scene/Settings.hpp"
 #include "scene/MainMenu.hpp"
 #include <cmath>
+#include "audio/Volumes.hpp"
+#include "util/Preferences.hpp"
 #include <iostream>
 
 namespace gomoku::gui {
@@ -37,19 +39,40 @@ void GameWindow::init()
     }
     std::cout << "[INIT] ResourceManager ready" << std::endl;
 
+    // Charger préférences (theme + flags audio)
+    {
+        gomoku::util::PreferencesData prefs;
+        if (gomoku::util::Preferences::load(prefs)) {
+            context_.sfxEnabled = prefs.sfxEnabled;
+            context_.musicEnabled = prefs.musicEnabled;
+            if (!prefs.theme.empty() && prefs.theme != context_.theme) {
+                resourceManager_.setTexturePackage(prefs.theme);
+                resourceManager_.setAudioPackage(prefs.theme);
+                context_.theme = prefs.theme;
+                context_.themeChanged = true;
+            }
+        }
+    }
+
     backgroundSprite_ = new sf::Sprite(resourceManager_.getTexture("background"));
     backgroundSprite_->setScale({ 1.f, 1.f });
+    layoutBackgroundToWindow();
     std::cout << "[INIT] Background sprite created" << std::endl;
 
     introActive_ = radialMask_.loadFromFile("assets/shaders/radial_mask.frag", sf::Shader::Type::Fragment);
     introClock_.restart();
     std::cout << "[INIT] Shader loaded? " << (introActive_ ? "yes" : "no") << std::endl;
 
-    // Start menu music if available (silent if missing)
-    if (music_.openFromFile("assets/audio/default/menu_theme.ogg")) {
-        music_.setLoop(true);
-        music_.setVolume(10.f);
-        music_.play();
+    // Start menu music based on current theme and user preference
+    {
+        std::string musicPath = std::string("assets/audio/") + context_.theme + "/menu_theme.ogg";
+        if (music_.openFromFile(musicPath)) {
+            music_.setLoop(true);
+            float vol = std::max(0.f, std::min(100.f, context_.musicVolume));
+            music_.setVolume(context_.musicEnabled ? std::min(100.f, MUSIC_VOLUME * (vol / 100.f)) : 0.f);
+            if (context_.musicEnabled)
+                music_.play();
+        }
     }
 
     currentScene_ = std::make_unique<MainMenu>(context_);
@@ -70,6 +93,9 @@ void GameWindow::handleEvents()
         if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
             context_.shouldQuit = true;
             return;
+        }
+        if (event.type == sf::Event::Resized) {
+            layoutBackgroundToWindow();
         }
         if (introActive_)
             continue;
@@ -137,12 +163,9 @@ void GameWindow::run()
             break;
         // Propagation changement de thème
         if (context_.themeChanged) {
-            // Rebind background
-            if (backgroundSprite_) {
-                try {
-                    backgroundSprite_->setTexture(resourceManager_.getTexture("background"), true);
-                } catch (...) {}
-            }
+            // Si la scène cible est Settings (ou active), préférer settings_menu
+            const bool isSettings = dynamic_cast<gomoku::scene::SettingsScene*>(currentScene_.get()) != nullptr || context_.showSettingsMenu;
+            setBackgroundSpriteTexturePrefer(isSettings ? "settings_menu" : "background");
             if (currentScene_)
                 currentScene_->onThemeChanged();
             context_.themeChanged = false;
@@ -151,6 +174,7 @@ void GameWindow::run()
             if (currentScene_)
                 currentScene_->onExit();
             std::cout << "[RUN] switch -> GameScene (vsAi=" << (context_.vsAi ? "true" : "false") << ")" << std::endl;
+            setBackgroundSpriteTexturePrefer("background");
             currentScene_ = std::make_unique<GameScene>(context_, context_.vsAi);
             context_.inGame = false;
         }
@@ -161,25 +185,70 @@ void GameWindow::run()
             if (currentScene_)
                 currentScene_->onExit();
             std::cout << "[RUN] switch -> GameSelect" << std::endl;
+            setBackgroundSpriteTexturePrefer("background");
             currentScene_ = std::make_unique<GameSelectScene>(context_);
             context_.showGameSelectMenu = false;
         } else if (context_.showSettingsMenu && !context_.inGame && !context_.showMainMenu && !context_.showGameSelectMenu) {
             if (currentScene_)
                 currentScene_->onExit();
             std::cout << "[RUN] switch -> Settings" << std::endl;
+            // Fond spécial Settings
+            setBackgroundSpriteTexturePrefer("settings_menu");
             currentScene_ = std::make_unique<gomoku::scene::SettingsScene>(context_);
+            
             context_.showSettingsMenu = false;
         } else if (context_.showMainMenu && !context_.inGame && !context_.showGameSelectMenu) {
             if (currentScene_)
                 currentScene_->onExit();
             std::cout << "[RUN] switch -> MainMenu" << std::endl;
             currentScene_ = std::make_unique<MainMenu>(context_);
+            // Revenir au fond générique
+            setBackgroundSpriteTexturePrefer("background");
             context_.showMainMenu = false;
         }
         if (currentScene_)
             currentScene_->update(deltaTime_);
         render();
     }
+}
+
+void GameWindow::setBackgroundSpriteTexturePrefer(const char* primaryKey)
+{
+    if (!backgroundSprite_)
+        return;
+    const char* fallbackKey = "background";
+    try {
+        if (resourceManager_.hasTexture(primaryKey)) {
+            backgroundSprite_->setTexture(resourceManager_.getTexture(primaryKey), true);
+        } else if (resourceManager_.hasTexture(fallbackKey)) {
+            backgroundSprite_->setTexture(resourceManager_.getTexture(fallbackKey), true);
+        }
+    } catch (...) {
+        // garde la texture actuelle si indisponible
+    }
+    layoutBackgroundToWindow();
+}
+
+void GameWindow::layoutBackgroundToWindow()
+{
+    if (!backgroundSprite_)
+        return;
+    auto winSize = window_.getSize();
+    const sf::Texture* tex = backgroundSprite_->getTexture();
+    if (!tex)
+        return;
+    auto texSize = tex->getSize();
+    if (texSize.x == 0 || texSize.y == 0)
+        return;
+    float scaleX = static_cast<float>(winSize.x) / static_cast<float>(texSize.x);
+    float scaleY = static_cast<float>(winSize.y) / static_cast<float>(texSize.y);
+    float scale = std::max(scaleX, scaleY); // cover
+    backgroundSprite_->setScale(scale, scale);
+    // centre
+    float spriteW = static_cast<float>(texSize.x) * scale;
+    float spriteH = static_cast<float>(texSize.y) * scale;
+    backgroundSprite_->setPosition((static_cast<float>(winSize.x) - spriteW) * 0.5f,
+                                   (static_cast<float>(winSize.y) - spriteH) * 0.5f);
 }
 
 } // namespace gomoku::gui
