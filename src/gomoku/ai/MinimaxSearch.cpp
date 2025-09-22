@@ -52,8 +52,8 @@ namespace {
 // Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
 std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, SearchStats* stats)
 {
-    LOG_INFO("MinimaxSearch: Début de recherche du meilleur coup pour "
-        + std::string(board.toPlay() == Player::Black ? "Noir" : "Blanc"));
+    LOG_INFO("MinimaxSearch: Starting search for best move for "
+        + std::string(board.toPlay() == Player::Black ? "Black" : "White"));
 
     if (stats)
         *stats = SearchStats {};
@@ -67,7 +67,7 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
                 break;
             }
     if (empty) {
-        LOG_DEBUG("MinimaxSearch: Plateau vide - coup d'ouverture au centre");
+        LOG_DEBUG("MinimaxSearch: Empty board - center opening move");
         Move c { { (uint8_t)(BOARD_SIZE / 2), (uint8_t)(BOARD_SIZE / 2) }, board.toPlay() };
         if (stats) {
             stats->nodes = 1;
@@ -78,7 +78,9 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
         return c;
     }
 
-    LOG_DEBUG("MinimaxSearch: Initialisation - Budget: " + std::to_string(cfg.timeBudgetMs) + "ms, TTBytes: " + std::to_string(cfg.ttBytes));
+    LOG_DEBUG("MinimaxSearch: Initialization - Budget: " + std::to_string(cfg.timeBudgetMs) + "ms, TTBytes: " + std::to_string(cfg.ttBytes));
+
+    // Populate TT from data if available
     budgetMs = cfg.timeBudgetMs;
     t0 = std::chrono::steady_clock::now();
     timeUp = false;
@@ -92,7 +94,7 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
     // Fallback rapide: premier légal (cas extrême)
     std::vector<Move> legals = board.legalMoves(board.toPlay(), rules);
     if (legals.empty()) {
-        LOG_WARNING("MinimaxSearch: Aucun coup légal disponible!");
+        LOG_WARNING("MinimaxSearch: No legal moves available!");
         if (stats) {
             stats->nodes = 0;
             stats->depthReached = 0;
@@ -100,7 +102,7 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
         }
         return std::nullopt;
     } else {
-        LOG_DEBUG("MinimaxSearch: " + std::to_string(legals.size()) + " coups légaux disponibles");
+        LOG_DEBUG("MinimaxSearch: " + std::to_string(legals.size()) + " legal moves available");
         best = legals.front();
         bestScore = -1'000'000;
         if (stats) {
@@ -110,32 +112,32 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
 
     // Iterative deepening
     int maxDepth = std::max(2, cfg.maxDepthHint);
-    LOG_DEBUG("MinimaxSearch: Iterative deepening jusqu'à profondeur " + std::to_string(maxDepth));
+    LOG_DEBUG("MinimaxSearch: Iterative deepening up to depth " + std::to_string(maxDepth));
     for (int depth = 2; depth <= maxDepth; ++depth) {
         if (expired()) {
             timeUp = true;
             break;
         }
-        LOG_DEBUG("MinimaxSearch: Recherche à profondeur " + std::to_string(depth));
+        LOG_DEBUG("MinimaxSearch: Searching at depth " + std::to_string(depth));
         auto res = alphabeta(board, rules, depth,
             std::numeric_limits<int>::min() / 2,
             std::numeric_limits<int>::max() / 2,
             board.toPlay(), stats);
         if (timeUp) {
-            LOG_DEBUG("MinimaxSearch: Temps écoulé à profondeur " + std::to_string(depth));
+            LOG_DEBUG("MinimaxSearch: Time expired at depth " + std::to_string(depth));
             break;
         }
         if (res.move) {
             best = res.move;
             bestScore = res.score;
-            LOG_DEBUG("MinimaxSearch: Profondeur " + std::to_string(depth) + " - Score: " + std::to_string(bestScore)
-                + " - Coup: (" + std::to_string(res.move->pos.x) + "," + std::to_string(res.move->pos.y) + ")");
+            LOG_DEBUG("MinimaxSearch: Depth " + std::to_string(depth) + " - Score: " + std::to_string(bestScore)
+                + " - Move: (" + std::to_string(res.move->pos.x) + "," + std::to_string(res.move->pos.y) + ")");
             if (stats) {
                 stats->depthReached = depth;
                 stats->principalVariation = { *res.move };
             }
             if (bestScore > 800000) {
-                LOG_DEBUG("MinimaxSearch: Score gagnant détecté (" + std::to_string(bestScore) + "), arrêt anticipé");
+                LOG_DEBUG("MinimaxSearch: Winning score detected (" + std::to_string(bestScore) + "), early termination");
                 break;
             }
         }
@@ -145,11 +147,11 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
         using namespace std::chrono;
         stats->timeMs = (int)duration_cast<milliseconds>(steady_clock::now() - t0).count();
         if (best) {
-            LOG_INFO("MinimaxSearch: Recherche terminée - Temps: " + std::to_string(stats->timeMs) + "ms, "
-                + "Nœuds: " + std::to_string(stats->nodes) + ", Profondeur: " + std::to_string(stats->depthReached)
-                + " - Coup final: (" + std::to_string(best->pos.x) + "," + std::to_string(best->pos.y) + ")");
+            LOG_INFO("MinimaxSearch: Search completed - Time: " + std::to_string(stats->timeMs) + "ms, "
+                + "Nodes: " + std::to_string(stats->nodes) + ", Depth: " + std::to_string(stats->depthReached)
+                + " - Final move: (" + std::to_string(best->pos.x) + "," + std::to_string(best->pos.y) + ")");
         } else {
-            LOG_WARNING("MinimaxSearch: Recherche terminée sans coup trouvé - Temps: " + std::to_string(stats->timeMs) + "ms");
+            LOG_WARNING("MinimaxSearch: Search completed without move found - Time: " + std::to_string(stats->timeMs) + "ms");
         }
     }
     return best;
@@ -287,11 +289,11 @@ std::vector<Move> MinimaxSearch::orderedMoves(Board& b, const RuleSet& rules, Pl
     CandidateConfig cc;
     auto ms = CandidateGenerator::generate(b, rules, toPlay, cc);
     if (ms.size() <= 1) {
-        LOG_DEBUG("MinimaxSearch: " + std::to_string(ms.size()) + " candidat(s) - pas de tri nécessaire");
+        LOG_DEBUG("MinimaxSearch: " + std::to_string(ms.size()) + " candidate(s) - no sorting needed");
         return ms;
     }
 
-    LOG_DEBUG("MinimaxSearch: Tri de " + std::to_string(ms.size()) + " candidats par score heuristique");
+    LOG_DEBUG("MinimaxSearch: Sorting " + std::to_string(ms.size()) + " candidates by heuristic score");
 
     struct Sc {
         Move m;
