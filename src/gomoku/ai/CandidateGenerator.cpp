@@ -1,5 +1,6 @@
 // gomoku/ai/CandidateGenerator.cpp
 #include "gomoku/ai/CandidateGenerator.hpp"
+#include "gomoku/core/Logger.hpp"
 #include <algorithm>
 
 namespace gomoku {
@@ -60,6 +61,7 @@ namespace {
             return std::max(dx, dy) <= gap;
         };
 
+        int islandCount = 0;
         for (int i = 0; i < n; ++i)
             if (!vis[i]) {
                 vis[i] = 1;
@@ -79,6 +81,8 @@ namespace {
                         }
                 }
                 rects.push_back(r);
+                islandCount++;
+                LOG_DEBUG("    Îlot " + std::to_string(islandCount) + ": " + std::to_string(q.size()) + " pierres, zone[" + std::to_string(r.x1) + "," + std::to_string(r.y1) + "-" + std::to_string(r.x2) + "," + std::to_string(r.y2) + "]");
             }
         return rects;
     }
@@ -86,6 +90,7 @@ namespace {
     std::vector<Rect> mergeAll(std::vector<Rect> rs)
     {
         // fusion itérative O(m^2) — m petit dans la pratique
+        int mergeCount = 0;
         bool changed = true;
         while (changed) {
             changed = false;
@@ -95,11 +100,15 @@ namespace {
                         rs[i] = merge(rs[i], rs[j]);
                         rs.erase(rs.begin() + j);
                         changed = true;
+                        mergeCount++;
                         goto nextOuter;
                     }
                 }
             }
         nextOuter:;
+        }
+        if (mergeCount > 0) {
+            LOG_DEBUG("    " + std::to_string(mergeCount) + " fusions d'îlots effectuées");
         }
         return rs;
     }
@@ -111,6 +120,10 @@ std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& ru
 {
     (void)rules; // si des règles interdisent certains coups, le moteur les refusera à play()
 
+    LOG_DEBUG("CandidateGenerator: Début génération candidats");
+    std::string playerStr = (toPlay == Player::Black) ? "Noir" : "Blanc";
+    LOG_DEBUG("  -> Joueur: " + playerStr);
+
     // 1) cas trivial : plateau vide → centre
     bool empty = true;
     for (uint8_t y = 0; y < BOARD_SIZE && empty; ++y)
@@ -120,6 +133,7 @@ std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& ru
                 break;
             }
     if (empty) {
+        LOG_INFO("Plateau vide détecté - coup au centre");
         Move c { { (uint8_t)(BOARD_SIZE / 2), (uint8_t)(BOARD_SIZE / 2) }, toPlay };
         return { c };
     }
@@ -127,10 +141,15 @@ std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& ru
     // 2) îlots
     std::vector<P> stones;
     collectStones(b, stones);
+    LOG_DEBUG("  -> Pierres trouvées: " + std::to_string(stones.size()));
+
     auto rects = buildIslands(stones, cfg.groupGap);
+    LOG_DEBUG("  -> Îlots créés: " + std::to_string(rects.size()));
+
     for (auto& r : rects)
         r = dilate(r, cfg.margin);
     rects = mergeAll(std::move(rects));
+    LOG_DEBUG("  -> Îlots après fusion: " + std::to_string(rects.size()));
 
     // 3) bitmap de déduplication
     std::vector<uint8_t> seen(BOARD_SIZE * BOARD_SIZE, 0);
@@ -166,8 +185,11 @@ std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& ru
     for (const auto& p : stones)
         emitNeighborhood(p.x, p.y);
 
+    LOG_DEBUG("  -> Candidats après anneaux: " + std::to_string(out.size()));
+
     // 5) clamp aux rectangles (supprime lointains accidentels)
     if (!rects.empty()) {
+        size_t beforeClamp = out.size();
         out.erase(std::remove_if(out.begin(), out.end(), [&](const Move& m) {
             for (const auto& r : rects)
                 if (r.x1 <= m.pos.x && m.pos.x <= r.x2 && r.y1 <= m.pos.y && m.pos.y <= r.y2)
@@ -175,10 +197,13 @@ std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& ru
             return true;
         }),
             out.end());
+        LOG_DEBUG("  -> Candidats après clamping: " + std::to_string(out.size()) + " (supprimés: " + std::to_string(beforeClamp - out.size()) + ")");
     }
 
     // 6) fallback si trop peu : on ratisse finement dans les rectangles (scan)
     if (out.size() < 12) {
+        LOG_DEBUG("  -> Fallback: scan rectangles (candidats insuffisants: " + std::to_string(out.size()) + ")");
+        size_t beforeScan = out.size();
         for (const auto& r : rects) {
             for (int y = r.y1; y <= r.y2; ++y)
                 for (int x = r.x1; x <= r.x2; ++x) {
@@ -191,11 +216,21 @@ std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& ru
                         goto done;
                 }
         }
+        LOG_DEBUG("  -> Candidats après scan: " + std::to_string(out.size()) + " (ajoutés: " + std::to_string(out.size() - beforeScan) + ")");
     }
 
 done:
-    if (out.size() > cfg.maxCandidates)
+    if (out.size() > cfg.maxCandidates) {
+        LOG_DEBUG("  -> Limitation candidats: " + std::to_string(out.size()) + " -> " + std::to_string(cfg.maxCandidates));
         out.resize(cfg.maxCandidates);
+    }
+
+    LOG_INFO("CandidateGenerator: " + std::to_string(out.size()) + " candidats générés pour " + playerStr);
+
+    if (out.size() < 5) {
+        LOG_WARNING("Peu de candidats générés (" + std::to_string(out.size()) + ") - situation critique");
+    }
+
     return out;
 }
 
