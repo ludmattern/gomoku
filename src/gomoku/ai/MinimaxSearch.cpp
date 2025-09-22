@@ -98,6 +98,7 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
 
     // Réinitialiser les killer moves et l'historique pour cette nouvelle recherche
     clearKillersAndHistory();
+    clearPV();
 
     // Ouverture: centre si plateau vide
     bool empty = true;
@@ -160,7 +161,7 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
         auto res = alphabeta(board, rules, depth,
             std::numeric_limits<int>::min() / 2,
             std::numeric_limits<int>::max() / 2,
-            board.toPlay(), stats);
+            board.toPlay(), stats, /*ply=*/0);
         if (timeUp) {
             break;
         }
@@ -169,7 +170,14 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
             bestScore = res.score;
             if (stats) {
                 stats->depthReached = depth;
-                stats->principalVariation = { *res.move };
+                // Export PV line
+                stats->principalVariation.clear();
+                for (int i = 0; i < pvLen[0]; ++i) {
+                    const auto& mv = pvTable[0][i];
+                    if (mv.pos.x != 255) {
+                        stats->principalVariation.push_back(mv);
+                    }
+                }
             }
             if (bestScore > 800000) {
                 break; // Early termination for winning positions
@@ -192,7 +200,7 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
 }
 
 // ---------------- Alpha-Beta ----------------
-MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats)
+MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats, int ply)
 {
     if (stats)
         ++stats->nodes;
@@ -212,13 +220,13 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
             if (stats)
                 ++stats->ttHits;
             if (e->flag == TranspositionTable::Flag::Exact)
-                return { e->score, e->best };
+                return { e->score, (e->best.pos.x == 255 ? std::optional<Move> {} : std::optional<Move> { e->best }) };
             if (e->flag == TranspositionTable::Flag::Lower)
                 alpha = std::max(alpha, e->score);
             else
                 beta = std::min(beta, e->score);
             if (alpha >= beta)
-                return { e->score, e->best };
+                return { e->score, (e->best.pos.x == 255 ? std::optional<Move> {} : std::optional<Move> { e->best }) };
         }
         if (e->key == key) {
             ttBest = e->best;
@@ -252,7 +260,7 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
 
     Player toPlay = b.toPlay();
     auto moves = orderedMoves(b, rules, toPlay, depth);
-    if (haveTTBest) {
+    if (haveTTBest && ttBest.pos.x != 255) {
         for (size_t i = 0; i < moves.size(); ++i) {
             if (moves[i].pos.x == ttBest.pos.x && moves[i].pos.y == ttBest.pos.y) {
                 std::swap(moves[0], moves[i]);
@@ -285,11 +293,11 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
             // S'assurer que la profondeur reste positive
             newDepth = std::max(0, newDepth);
 
-            auto child = alphabeta(b, rules, newDepth, alpha, beta, maxPlayer, stats);
+            auto child = alphabeta(b, rules, newDepth, alpha, beta, maxPlayer, stats, ply + 1);
 
             // Si LMR était appliqué et que le résultat est prometteur, refaire la recherche complète
             if (reduction > 0 && child.score > alpha && newDepth < depth - 1) {
-                child = alphabeta(b, rules, depth - 1, alpha, beta, maxPlayer, stats);
+                child = alphabeta(b, rules, depth - 1, alpha, beta, maxPlayer, stats, ply + 1);
             }
 
             b.undo();
@@ -298,6 +306,8 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
             if (child.score > best) {
                 best = child.score;
                 bestMove = m;
+                setPVMove(ply, m);
+                copyChildPVUp(ply);
                 isPVNode = true; // Les mouvements suivants seront dans une fenêtre PV
             }
             alpha = std::max(alpha, child.score);
@@ -338,11 +348,11 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
             // S'assurer que la profondeur reste positive
             newDepth = std::max(0, newDepth);
 
-            auto child = alphabeta(b, rules, newDepth, alpha, beta, maxPlayer, stats);
+            auto child = alphabeta(b, rules, newDepth, alpha, beta, maxPlayer, stats, ply + 1);
 
             // Si LMR était appliqué et que le résultat est prometteur, refaire la recherche complète
             if (reduction > 0 && child.score < beta && newDepth < depth - 1) {
-                child = alphabeta(b, rules, depth - 1, alpha, beta, maxPlayer, stats);
+                child = alphabeta(b, rules, depth - 1, alpha, beta, maxPlayer, stats, ply + 1);
             }
 
             b.undo();
@@ -351,6 +361,8 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
             if (child.score < best) {
                 best = child.score;
                 bestMove = m;
+                setPVMove(ply, m);
+                copyChildPVUp(ply);
                 isPVNode = true; // Les mouvements suivants seront dans une fenêtre PV
             }
             beta = std::min(beta, child.score);
@@ -521,6 +533,13 @@ int MinimaxSearch::evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who
 {
     auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
 
+    // Head-only: ne compter la séquence que si (x - dx, y - dy) n'est pas la même couleur
+    int prevX = static_cast<int>(x) - dx;
+    int prevY = static_cast<int>(y) - dy;
+    if (inside(prevX, prevY) && b.at(static_cast<uint8_t>(prevX), static_cast<uint8_t>(prevY)) == who) {
+        return 0; // pas tête de séquence, on ne recompte pas
+    }
+
     int X = x, Y = y, len = 1;
     int x1 = X - dx, y1 = Y - dy;
     while (inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == who) {
@@ -603,6 +622,37 @@ int MinimaxSearch::getHistoryScore(const Move& move) const
         return historyTable[move.pos.x][move.pos.y];
     }
     return 0;
+}
+
+// === PV helpers ===
+
+void MinimaxSearch::clearPV()
+{
+    for (int i = 0; i < MAX_DEPTH; ++i) {
+        pvLen[i] = 0;
+        for (int j = 0; j < MAX_DEPTH; ++j) {
+            pvTable[i][j] = Move { { 255, 255 }, Player::Black };
+        }
+    }
+}
+
+void MinimaxSearch::setPVMove(int ply, const Move& m)
+{
+    if (ply < 0 || ply >= MAX_DEPTH)
+        return;
+    pvTable[ply][0] = m;
+    pvLen[ply] = 1;
+}
+
+void MinimaxSearch::copyChildPVUp(int ply)
+{
+    if (ply < 0 || ply + 1 >= MAX_DEPTH)
+        return;
+    int childLen = pvLen[ply + 1];
+    for (int i = 0; i < childLen && i + 1 < MAX_DEPTH; ++i) {
+        pvTable[ply][i + 1] = pvTable[ply + 1][i];
+    }
+    pvLen[ply] = 1 + childLen;
 }
 
 int MinimaxSearch::calculateLMRReduction(int depth, int moveIndex, bool isPVNode) const

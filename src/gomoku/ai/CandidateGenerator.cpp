@@ -181,9 +181,19 @@ std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& ru
             }
     };
 
-    // 4a) anneaux autour des pierres (deux joueurs)
-    for (const auto& p : stones)
-        emitNeighborhood(p.x, p.y);
+    // 4a) anneaux autour des pierres
+    // Optionnellement inclure l'anneau autour des pierres adverses uniquement
+    if (cfg.includeOpponentRing) {
+        for (const auto& p : stones)
+            emitNeighborhood(p.x, p.y);
+    } else {
+        // Émettre uniquement autour des pierres du joueur courant
+        Cell mine = (toPlay == Player::Black ? Cell::Black : Cell::White);
+        for (const auto& p : stones) {
+            if (b.at(p.x, p.y) == mine)
+                emitNeighborhood(p.x, p.y);
+        }
+    }
 
     LOG_DEBUG("  -> Candidates after rings: " + std::to_string(out.size()));
 

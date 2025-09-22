@@ -17,7 +17,7 @@ public:
         int score = 0;
         int depth = -1;
         Flag flag = Flag::Exact;
-        Move best {}; // stored best move (or default)
+        Move best { Pos { 255, 255 }, Player::Black }; // stored best move; (255,255) = invalid sentinel
     };
 
     TranspositionTable() = default;
@@ -53,7 +53,7 @@ public:
             e.depth = depth;
             e.score = score;
             e.flag = flag;
-            e.best = best.value_or(Move { Pos { 0, 0 }, Player::Black });
+            e.best = best.value_or(Move { Pos { 255, 255 }, Player::Black });
         }
     }
 

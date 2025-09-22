@@ -48,7 +48,7 @@ private:
     SearchStats lastStats_;
 
     // Helper to convert IBoardView to concrete Board for MinimaxSearch class
-    class Board boardFromView(const IBoardView& view) const;
+    gomoku::Board boardFromView(const IBoardView& view) const;
 };
 
 } // namespace gomoku::ai

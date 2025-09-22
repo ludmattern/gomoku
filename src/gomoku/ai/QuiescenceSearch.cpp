@@ -22,7 +22,7 @@ QuiescenceSearch::Result QuiescenceSearch::search(
     SearchStats* stats, int depth)
 {
     if (stats)
-        ++stats->nodes;
+        ++stats->qnodes;
     ++visitedNodes_;
 
     if (shouldStop(stats)) {
@@ -269,9 +269,10 @@ bool QuiescenceSearch::isTacticalMove(const Board& board, uint8_t x, uint8_t y, 
 
 bool QuiescenceSearch::shouldStop(SearchStats* stats) const
 {
-    // Pour l'instant, simple vérification basique
-    // Peut être étendue avec gestion du timeout, limite de nœuds, etc.
-    (void)stats; // Évite le warning unused parameter
+    (void)stats; // stats disponibles si besoin (ex: nœuds max)
+    if (stopCallback_) {
+        return stopCallback_();
+    }
     return false;
 }
 

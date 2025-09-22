@@ -90,12 +90,12 @@ SearchStats MinimaxSearchEngine::getLastSearchStats() const
 }
 
 // Helper method to convert IBoardView to concrete Board
-Board MinimaxSearchEngine::boardFromView(const IBoardView& view) const
+gomoku::Board MinimaxSearchEngine::boardFromView(const IBoardView& view) const
 {
-    if (auto concreteBoard = dynamic_cast<const Board*>(&view)) {
+    if (auto concreteBoard = dynamic_cast<const gomoku::Board*>(&view)) {
         return *concreteBoard;
     }
-    return Board {}; // production fallback
+    return gomoku::Board {}; // production fallback
 }
 
 } // namespace gomoku::ai

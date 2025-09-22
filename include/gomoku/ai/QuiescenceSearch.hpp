@@ -32,6 +32,9 @@ public:
     QuiescenceSearch();
     explicit QuiescenceSearch(const Config& config);
 
+    // Partage de l'arrêt (timeout/budget) avec le moteur principal
+    void setStopCallback(std::function<bool()> cb) { stopCallback_ = std::move(cb); }
+
     /**
      * @brief Effectue une recherche de quiescence
      * @param board Plateau de jeu
@@ -73,6 +76,7 @@ public:
 private:
     Config config_;
     mutable unsigned long long visitedNodes_ = 0;
+    std::function<bool()> stopCallback_;
 
     /**
      * @brief Vérifie si la recherche doit s'arrêter (timeout, etc.)

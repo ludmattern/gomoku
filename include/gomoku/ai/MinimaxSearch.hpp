@@ -33,6 +33,8 @@ public:
         , quiescenceSearch_(conf.quiescence)
     {
         clearKillersAndHistory();
+        // Définir le callback d'arrêt pour la quiescence
+        quiescenceSearch_.setStopCallback([this]() { return this->expired(); });
     }
 
     std::optional<Move> bestMove(Board& board, const RuleSet& rules, SearchStats* stats);
@@ -90,7 +92,8 @@ private:
         std::optional<Move> move;
     };
 
-    ABResult alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats);
+    // Alpha-Beta search with Principal Variation tracking
+    ABResult alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats, int ply);
 
     inline bool expired() const
     {
@@ -122,6 +125,14 @@ private:
     bool detectDouble3(const Board& b, uint8_t x, uint8_t y, Player player) const;
     bool detectFork3(const Board& b, uint8_t x, uint8_t y, Player player) const;
     int countThreatLines(const Board& b, uint8_t x, uint8_t y, Player player, int minLength) const;
+
+    // Principal Variation (PV) storage
+    void clearPV();
+    void setPVMove(int ply, const Move& m);
+    void copyChildPVUp(int ply);
+
+    Move pvTable[MAX_DEPTH][MAX_DEPTH] {};
+    int pvLen[MAX_DEPTH] {};
 };
 
 } // namespace gomoku
