@@ -128,6 +128,7 @@ install: $(TARGET)
 
 # SFML setup - delegates to script for complex logic
 SFML:
+	@echo "[SFML] Setting up SFML"
 	@./scripts/setup_sfml.sh
 
 # Uninstall rule
@@ -136,6 +137,7 @@ uninstall:
 
 # Help rule
 help:
+	@echo "[HELP] Displaying help information"
 	@echo "Gomoku Project Makefile"
 	@echo ""
 	@echo "Build Targets:"
@@ -166,7 +168,7 @@ help:
 
 # Rule to check dependencies
 check-deps:
-	@echo "Check deps"
+	@echo "[CHECK-DEPS]"
 	@echo "System: $(UNAME_S)"
 	@echo "SFML: $(SFML_DIR)"
 	@if [ "$(UNAME_S)" = "Darwin" ]; then \

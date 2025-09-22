@@ -115,6 +115,13 @@ private:
 
     // Late Move Reduction
     int calculateLMRReduction(int depth, int moveIndex, bool isPVNode) const;
+
+    // Advanced Pattern Detection
+    int evaluateAdvancedPatterns(const Board& b, uint8_t x, uint8_t y, Player player, bool orderingContext) const;
+    bool detectSplit4(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const;
+    bool detectDouble3(const Board& b, uint8_t x, uint8_t y, Player player) const;
+    bool detectFork3(const Board& b, uint8_t x, uint8_t y, Player player) const;
+    int countThreatLines(const Board& b, uint8_t x, uint8_t y, Player player, int minLength) const;
 };
 
 } // namespace gomoku

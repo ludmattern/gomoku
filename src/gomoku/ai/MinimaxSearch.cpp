@@ -14,17 +14,54 @@ namespace {
         int win;
         int open4;
         int half4;
+        int split4; // X_XXX, XX_XX (4 avec gap)
         int open3;
         int half3;
+        int double3; // Deux open-3 créés simultanément
+        int fork3; // Fourchette de 3
         int open2;
         int half2;
+        int double2; // Deux open-2 créés simultanément
         int single;
+        int capture_threat; // Menace de capture XOOX
+        int double_threat; // Menaces multiples
     };
 
     // Values copied from the original if/else ladders (evaluateOneDir used 500000 win,
     // quickScoreMove used 900000). Other values are identical.
-    constexpr PatternConfig EvalScores { 500000, 120000, 30000, 12000, 3000, 1000, 300, 20 };
-    constexpr PatternConfig OrderScores { 900000, 120000, 30000, 12000, 3000, 1000, 300, 20 };
+    constexpr PatternConfig EvalScores {
+        500000, // win
+        120000, // open4
+        30000, // half4
+        80000, // split4 - très dangereux car difficile à bloquer
+        12000, // open3
+        3000, // half3
+        25000, // double3 - force généralement la victoire
+        18000, // fork3 - fourchette de 3
+        1000, // open2
+        300, // half2
+        2500, // double2
+        20, // single
+        8000, // capture_threat
+        15000 // double_threat
+    };
+
+    constexpr PatternConfig OrderScores {
+        900000, // win
+        120000, // open4
+        30000, // half4
+        85000, // split4
+        12000, // open3
+        3000, // half3
+        30000, // double3
+        20000, // fork3
+        1000, // open2
+        300, // half2
+        3000, // double2
+        20, // single
+        10000, // capture_threat
+        18000 // double_threat
+    };
 
     inline int patternScore(int len, int open, const PatternConfig& cfg)
     {
@@ -444,6 +481,9 @@ int MinimaxSearch::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint
             score += 4000;
     }
 
+    // Ajouter l'évaluation des patterns avancés pour l'ordering
+    score += evaluateAdvancedPatterns(b, x, y, toPlay, true /* ordering context */);
+
     return score;
 }
 
@@ -461,6 +501,9 @@ int MinimaxSearch::evaluate(const Board& b, Player pov) const
                 sum += evaluateOneDir(b, x, y, who, 0, 1);
                 sum += evaluateOneDir(b, x, y, who, 1, 1);
                 sum += evaluateOneDir(b, x, y, who, 1, -1);
+
+                // Ajouter l'évaluation des patterns avancés pour chaque pion existant
+                sum += evaluateAdvancedPatterns(b, x, y, p, false /* evaluation context */);
             }
         }
         auto [bp, wp] = b.capturedPairs();
@@ -593,6 +636,246 @@ int MinimaxSearch::calculateLMRReduction(int depth, int moveIndex, bool isPVNode
     reduction = std::min(reduction, depth - 1);
 
     return reduction;
+}
+
+// === Advanced Pattern Detection ===
+
+int MinimaxSearch::evaluateAdvancedPatterns(const Board& b, uint8_t x, uint8_t y, Player player, bool orderingContext) const
+{
+    Cell who = playerToCell(player);
+    int score = 0;
+
+    // 1. Détecter Split-4 dans toutes les directions
+    static const int DX[4] = { 1, 0, 1, 1 };
+    static const int DY[4] = { 0, 1, 1, -1 };
+
+    for (int d = 0; d < 4; ++d) {
+        if (detectSplit4(b, x, y, who, DX[d], DY[d])) {
+            score += orderingContext ? OrderScores.split4 : EvalScores.split4;
+        }
+    }
+
+    // 2. Détecter Double-3 (deux open-3 créés simultanément)
+    if (detectDouble3(b, x, y, player)) {
+        score += orderingContext ? OrderScores.double3 : EvalScores.double3;
+    }
+
+    // 3. Détecter Fork-3 (fourchette de 3)
+    if (detectFork3(b, x, y, player)) {
+        score += orderingContext ? OrderScores.fork3 : EvalScores.fork3;
+    }
+
+    // 4. Détecter menaces multiples
+    int threatLines = countThreatLines(b, x, y, player, 2); // Au moins 2 pierres alignées
+    if (threatLines >= 2) {
+        score += orderingContext ? OrderScores.double_threat : EvalScores.double_threat;
+    }
+
+    return score;
+}
+
+bool MinimaxSearch::detectSplit4(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const
+{
+    auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
+
+    // Compter les pions dans les deux directions à partir de (x,y)
+    std::vector<int> positions; // Positions relatives des pions de notre couleur
+
+    // Direction négative
+    for (int i = -4; i <= -1; ++i) {
+        int nx = x + i * dx;
+        int ny = y + i * dy;
+        if (!inside(nx, ny))
+            break;
+
+        Cell cell = b.at(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny));
+        if (cell == who) {
+            positions.push_back(i);
+        } else if (cell != Cell::Empty) {
+            break; // Bloqué par l'adversaire
+        }
+    }
+
+    // Ajouter la position actuelle (notre coup)
+    positions.push_back(0);
+
+    // Direction positive
+    for (int i = 1; i <= 4; ++i) {
+        int nx = x + i * dx;
+        int ny = y + i * dy;
+        if (!inside(nx, ny))
+            break;
+
+        Cell cell = b.at(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny));
+        if (cell == who) {
+            positions.push_back(i);
+        } else if (cell != Cell::Empty) {
+            break; // Bloqué par l'adversaire
+        }
+    }
+
+    // Vérifier s'il y a au moins 4 pions dans une fenêtre de 5 cases
+    if (positions.size() < 4)
+        return false;
+
+    // Chercher une séquence de 5 positions contenant au moins 4 pions
+    for (size_t i = 0; i + 3 < positions.size(); ++i) {
+        int start = positions[i];
+        int end = positions[i + 3];
+
+        // Si 4 pions s'étendent sur exactement 5 cases (donc 1 gap)
+        if (end - start == 4) {
+            // Vérifier que c'est ouvert aux extrémités pour être vraiment dangereux
+            int leftX = x + (start - 1) * dx;
+            int leftY = y + (start - 1) * dy;
+            int rightX = x + (end + 1) * dx;
+            int rightY = y + (end + 1) * dy;
+
+            bool leftOpen = inside(leftX, leftY) && b.at(static_cast<uint8_t>(leftX), static_cast<uint8_t>(leftY)) == Cell::Empty;
+            bool rightOpen = inside(rightX, rightY) && b.at(static_cast<uint8_t>(rightX), static_cast<uint8_t>(rightY)) == Cell::Empty;
+
+            // Split-4 détecté si au moins une extrémité est ouverte
+            if (leftOpen || rightOpen) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool MinimaxSearch::detectDouble3(const Board& b, uint8_t x, uint8_t y, Player player) const
+{
+    // Compter combien de lignes de 3+ peuvent être formées en jouant en (x,y)
+    int open3Count = 0;
+    Cell who = playerToCell(player);
+
+    static const int DX[4] = { 1, 0, 1, 1 };
+    static const int DY[4] = { 0, 1, 1, -1 };
+
+    for (int d = 0; d < 4; ++d) {
+        // Simuler le coup et vérifier si ça crée un open-3
+        auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
+
+        int len = 1; // Le pion qu'on vient de jouer
+
+        // Compter dans la direction positive
+        int x1 = x + DX[d], y1 = y + DY[d];
+        while (inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == who) {
+            len++;
+            x1 += DX[d];
+            y1 += DY[d];
+        }
+
+        // Compter dans la direction négative
+        int x2 = x - DX[d], y2 = y - DY[d];
+        while (inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == who) {
+            len++;
+            x2 -= DX[d];
+            y2 -= DY[d];
+        }
+
+        // Vérifier si c'est un open-3 (len == 3 avec les deux extrémités ouvertes)
+        if (len == 3) {
+            bool openA = inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == Cell::Empty;
+            bool openB = inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == Cell::Empty;
+
+            if (openA && openB) {
+                open3Count++;
+            }
+        }
+    }
+
+    return open3Count >= 2; // Au moins deux open-3 créés
+}
+
+bool MinimaxSearch::detectFork3(const Board& b, uint8_t x, uint8_t y, Player player) const
+{
+    // Une fourchette de 3 est une position qui crée plusieurs menaces de 4
+    // En gros, c'est un double-3 où au moins une des lignes peut devenir un 4 gagnant
+    if (!detectDouble3(b, x, y, player)) {
+        return false; // Pas de double-3, donc pas de fourchette
+    }
+
+    Cell who = playerToCell(player);
+    static const int DX[4] = { 1, 0, 1, 1 };
+    static const int DY[4] = { 0, 1, 1, -1 };
+
+    auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
+
+    // Vérifier si au moins une des lignes peut se prolonger en 4 gagnant
+    for (int d = 0; d < 4; ++d) {
+        // Vérifier extension possible dans cette direction
+        int x1 = x + DX[d], y1 = y + DY[d];
+        int x2 = x - DX[d], y2 = y - DY[d];
+
+        // Compter les pions alignés
+        int len = 1;
+        while (inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == who) {
+            len++;
+            x1 += DX[d];
+            y1 += DY[d];
+        }
+        while (inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == who) {
+            len++;
+            x2 -= DX[d];
+            y2 -= DY[d];
+        }
+
+        // Si on a 3 alignés avec possibilité d'extension vers 4
+        if (len >= 3) {
+            bool canExtend = (inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == Cell::Empty) || (inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == Cell::Empty);
+            if (canExtend) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+int MinimaxSearch::countThreatLines(const Board& b, uint8_t x, uint8_t y, Player player, int minLength) const
+{
+    Cell who = playerToCell(player);
+    int threatCount = 0;
+
+    static const int DX[4] = { 1, 0, 1, 1 };
+    static const int DY[4] = { 0, 1, 1, -1 };
+
+    auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
+
+    for (int d = 0; d < 4; ++d) {
+        int len = 1; // Le pion qu'on vient de jouer
+
+        // Compter dans la direction positive
+        int x1 = x + DX[d], y1 = y + DY[d];
+        while (inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == who) {
+            len++;
+            x1 += DX[d];
+            y1 += DY[d];
+        }
+
+        // Compter dans la direction négative
+        int x2 = x - DX[d], y2 = y - DY[d];
+        while (inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == who) {
+            len++;
+            x2 -= DX[d];
+            y2 -= DY[d];
+        }
+
+        // Si la ligne fait au moins minLength, c'est une menace
+        if (len >= minLength) {
+            // Bonus si c'est ouvert
+            bool openA = inside(x1, y1) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == Cell::Empty;
+            bool openB = inside(x2, y2) && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == Cell::Empty;
+
+            if (openA || openB) {
+                threatCount++;
+            }
+        }
+    }
+
+    return threatCount;
 }
 
 } // namespace gomoku
