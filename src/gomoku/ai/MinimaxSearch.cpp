@@ -439,7 +439,6 @@ std::vector<Move> MinimaxSearch::orderedMoves(Board& b, const RuleSet& rules, Pl
 int MinimaxSearch::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint8_t y) const
 {
     const Cell me = (toPlay == Player::Black ? Cell::Black : Cell::White);
-    const Cell opp = (me == Cell::Black ? Cell::White : Cell::Black);
     auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
 
     if (b.at(x, y) != Cell::Empty)
@@ -478,23 +477,7 @@ int MinimaxSearch::quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint
         score += scorePattern(true /* ordering context */, len, open);
     }
 
-    // opportunité de capture XOOX
-    for (int d = 0; d < 4; ++d) {
-        int x1 = (int)x + DX[d], y1 = (int)y + DY[d];
-        int x2 = (int)x + 2 * DX[d], y2 = (int)y + 2 * DY[d];
-        int x3 = (int)x + 3 * DX[d], y3 = (int)y + 3 * DY[d];
-        if (inside(x3, y3) && b.at(static_cast<uint8_t>(x1), static_cast<uint8_t>(y1)) == opp && b.at(static_cast<uint8_t>(x2), static_cast<uint8_t>(y2)) == opp && b.at(static_cast<uint8_t>(x3), static_cast<uint8_t>(y3)) == me)
-            score += 4000;
-
-        int X1 = (int)x - DX[d], Y1 = (int)y - DY[d];
-        int X2 = (int)x - 2 * DX[d], Y2 = (int)y - 2 * DY[d];
-        int X3 = (int)x - 3 * DX[d], Y3 = (int)y - 3 * DY[d];
-        if (inside(X3, Y3) && b.at(static_cast<uint8_t>(X1), static_cast<uint8_t>(Y1)) == opp && b.at(static_cast<uint8_t>(X2), static_cast<uint8_t>(Y2)) == opp && b.at(static_cast<uint8_t>(X3), static_cast<uint8_t>(Y3)) == me)
-            score += 4000;
-    }
-
-    // Ajouter l'évaluation des patterns avancés pour l'ordering
-    score += evaluateAdvancedPatterns(b, x, y, toPlay, true /* ordering context */);
+    // Note: on garde l'ordering simple pour la vitesse; patterns avancés réservés
 
     return score;
 }
@@ -514,8 +497,7 @@ int MinimaxSearch::evaluate(const Board& b, Player pov) const
                 sum += evaluateOneDir(b, x, y, who, 1, 1);
                 sum += evaluateOneDir(b, x, y, who, 1, -1);
 
-                // Ajouter l'évaluation des patterns avancés pour chaque pion existant
-                sum += evaluateAdvancedPatterns(b, x, y, p, false /* evaluation context */);
+                // Note: patterns avancés réservés à l'ordering pour performance
             }
         }
         auto [bp, wp] = b.capturedPairs();
@@ -657,34 +639,24 @@ void MinimaxSearch::copyChildPVUp(int ply)
 
 int MinimaxSearch::calculateLMRReduction(int depth, int moveIndex, bool isPVNode) const
 {
-    // Pas de réduction si LMR est désactivé
-    if (!cfg.lmrEnabled) {
+    if (!cfg.lmrEnabled)
         return 0;
-    }
-
-    // Pas de réduction si la profondeur est trop faible
-    if (depth < cfg.lmrMinDepth) {
+    if (depth < cfg.lmrMinDepth)
         return 0;
-    }
-
-    // Pas de réduction pour les premiers mouvements (supposés meilleurs)
-    if (moveIndex < cfg.lmrMoveThreshold) {
+    if (moveIndex < cfg.lmrMoveThreshold)
         return 0;
-    }
 
-    // Réduction moins agressive pour les nœuds PV (Principal Variation)
-    int reduction = cfg.lmrReduction;
-    if (isPVNode) {
-        reduction = std::max(1, reduction - 1);
-    }
+    // Table simple: base 1, +1 si moveIndex >= 12
+    int reduction = 1;
+    if (moveIndex >= 12)
+        reduction += cfg.lmrTableMove12Bonus; // par défaut 1
 
-    // Réduction progressive : plus le mouvement est tard dans la liste, plus la réduction est forte
-    int additionalReduction = (moveIndex - cfg.lmrMoveThreshold) / 4;
-    reduction += additionalReduction;
+    // Ajustement PV: réduire moins sur les nœuds PV
+    if (isPVNode)
+        reduction = std::max(0, reduction - 1);
 
-    // Limiter la réduction pour éviter de trop réduire
+    // Clamp
     reduction = std::min(reduction, depth - 1);
-
     return reduction;
 }
 

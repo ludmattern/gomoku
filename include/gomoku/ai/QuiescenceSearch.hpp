@@ -19,9 +19,9 @@ struct RuleSet;
 class QuiescenceSearch {
 public:
     struct Config {
-        int maxDepth = 4; // Profondeur maximale de quiescence
+        int maxDepth = 3; // Profondeur maximale de quiescence (légèrement réduit)
         bool enabled = true; // Activer/désactiver la quiescence
-        int maxTacticalMoves = 8; // Limite du nombre de mouvements tactiques évalués
+        int maxTacticalMoves = 6; // Limite du nombre de mouvements tactiques évalués
     };
 
     struct Result {
@@ -59,7 +59,7 @@ public:
     /**
      * @brief Génère les mouvements tactiquement importants
      */
-    std::vector<Move> generateTacticalMoves(Board& board, const RuleSet& rules, Player toPlay);
+    std::vector<Move> generateTacticalMoves(const Board& board, const RuleSet& rules, Player toPlay);
 
     /**
      * @brief Détermine si un mouvement est tactiquement important

@@ -23,7 +23,8 @@ struct SearchConfig {
     bool lmrEnabled = true; // Activer/désactiver LMR
     int lmrMinDepth = 3; // Profondeur minimale pour appliquer LMR
     int lmrMoveThreshold = 4; // Indice de mouvement à partir duquel appliquer LMR
-    int lmrReduction = 1; // Réduction de profondeur (peut être adaptative)
+    int lmrReduction = 1; // Base de réduction
+    int lmrTableMove12Bonus = 1; // Bonus de réduction après moveIndex >= 12
 };
 
 class MinimaxSearch {

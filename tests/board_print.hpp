@@ -20,7 +20,7 @@ inline void printBoard(const gomoku::IBoardView& b, std::optional<gomoku::Pos> l
         for (int x = 0; x < BOARD_SIZE; ++x) {
             bool isLast = last && last->x == x && last->y == y;
             char ch = '.';
-            auto c = b.at(x, y);
+            auto c = b.at(static_cast<uint8_t>(x), static_cast<uint8_t>(y));
             if (c == Cell::Black)
                 ch = isLast ? 'X' : 'B';
             else if (c == Cell::White)

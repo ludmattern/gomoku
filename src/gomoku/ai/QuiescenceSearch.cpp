@@ -136,12 +136,11 @@ bool QuiescenceSearch::isQuiet(const Board& board, const RuleSet& rules, Player 
         return true;
 
     // Une position est calme s'il n'y a pas de mouvements tactiquement critiques
-    Board temp = board;
-    auto tacticals = generateTacticalMoves(temp, rules, toPlay);
+    auto tacticals = generateTacticalMoves(board, rules, toPlay);
     return tacticals.empty();
 }
 
-std::vector<Move> QuiescenceSearch::generateTacticalMoves(Board& board, const RuleSet& rules, Player toPlay)
+std::vector<Move> QuiescenceSearch::generateTacticalMoves(const Board& board, const RuleSet& rules, Player toPlay)
 {
     // Générer tous les mouvements candidats
     CandidateConfig config;

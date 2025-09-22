@@ -1,5 +1,6 @@
 #include "board_print.hpp"
 #include "gomoku/application/SessionController.hpp"
+#include "gomoku/core/Board.hpp"
 #include "gomoku/core/Types.hpp"
 #include "test_framework.hpp"
 #include <cassert>
@@ -23,23 +24,37 @@ struct TestEngine {
     bool undo() { return session.undo(); }
     bool isLegal(Move m, std::string* why) const
     {
-        // L'API SessionController ne fournit pas encore de check sans muter; on simule:
-        // 1. On vérifie que la case est vide et que c'est le bon joueur.
-        auto snap = session.snapshot();
-        if (snap.toPlay != m.by) {
+        // Simulation non destructive via copie concrète du Board pour vérifier toutes les règles
+        auto& view = board();
+        if (view.toPlay() != m.by) {
             if (why)
                 *why = "wrong-turn";
             return false;
         }
-        if (board().at(m.pos.x, m.pos.y) != Cell::Empty) {
+        if (view.at(m.pos.x, m.pos.y) != Cell::Empty) {
             if (why)
                 *why = "occupied";
             return false;
         }
-        // Limitations: ne vérifie pas double-trois ni captures.
+        // Tenter un tryPlay sur une copie concrète si possible
+        if (auto concrete = dynamic_cast<const gomoku::Board*>(&view)) {
+            gomoku::Board sim = *concrete; // copie
+            RuleSet rules {}; // défaut: utilise les règles standard
+            auto pr = sim.tryPlay(m, rules);
+            if (pr.success) {
+                if (why)
+                    *why = "ok";
+                return true;
+            }
+            if (why) {
+                *why = pr.error;
+            }
+            return false;
+        }
+        // Fallback si non concret
         if (why)
-            *why = "ok-basic";
-        return true;
+            *why = "unknown";
+        return false;
     }
 };
 
