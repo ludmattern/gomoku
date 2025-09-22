@@ -23,6 +23,11 @@ struct Context {
     gomoku::gui::GameBoardRenderer* boardRenderer = nullptr;
     std::string theme = "default";
     bool themeChanged = false;
+    // Audio settings
+    bool sfxEnabled = true;
+    bool musicEnabled = true;
+    float sfxVolume = 100.f;   // master SFX volume (0-100)
+    float musicVolume = 10.f;  // default music volume (0-100)
 };
 
 } // namespace gomoku::scene

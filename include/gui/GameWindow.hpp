@@ -25,6 +25,8 @@ public:
     void cleanup();
 
 private:
+    void setBackgroundSpriteTexturePrefer(const char* primaryKey);
+    void layoutBackgroundToWindow();
     sf::RenderWindow window_;
     bool isRunning_ { false };
     gomoku::scene::Context context_;

@@ -1,5 +1,6 @@
 #include "scene/GameScene.hpp"
 #include <algorithm>
+#include "audio/Volumes.hpp"
 #include <chrono>
 #include <cmath>
 
@@ -136,10 +137,10 @@ bool GameScene::handleInput(sf::Event& event)
                             auto snap1 = gameSession_.snapshot();
                             const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setBoardView(snap1.view);
                             // SFX: pose de pion selon couleur jouée
-                            playSfx(snap1.toPlay == gomoku::Player::Black ? "place_stone_white" : "place_stone_black", 70.f);
+                            playSfx(snap1.toPlay == gomoku::Player::Black ? "place_white" : "place_black", PLACE_PAWN_VOLUME);
                             // Capture détectée ? compare les paires capturées avant/après
                             if (snap1.captures.first > before.captures.first || snap1.captures.second > before.captures.second) {
-                                playSfx("capture", 80.f);
+                                playSfx("capture", CAPTURE_VOLUME);
                             }
                             // Check end of game
                             if (snap1.status != gomoku::GameStatus::Ongoing)
@@ -181,9 +182,11 @@ void GameScene::update(sf::Time& deltaTime)
         lastAiMs_ = (int)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
         auto snap = gameSession_.snapshot();
         const_cast<gomoku::gui::GameBoardRenderer&>(boardRenderer_).setBoardView(snap.view);
+        // SFX: pose de pion IA (même logique que côté humain: on déduit la couleur depuis toPlay)
+        playSfx(snap.toPlay == gomoku::Player::Black ? "place_white" : "place_black", PLACE_PAWN_VOLUME);
         // Capture détectée côté IA ?
         if (snap.captures.first > before.captures.first || snap.captures.second > before.captures.second) {
-            playSfx("capture", 80.f);
+            playSfx("capture", CAPTURE_VOLUME);
         }
         aiThinking_ = false;
         // Start short cooldown to swallow any clicks pressed during AI thinking
@@ -258,7 +261,7 @@ void GameScene::onBackClicked()
     context_.inGame = false;
     context_.showMainMenu = true;
     std::string musicPath = std::string("assets/audio/") + context_.theme + "/menu_theme.ogg";
-	playMusic(musicPath.c_str(), true, 10.f);
+	playMusic(musicPath.c_str(), true, MUSIC_VOLUME);
 }
 
 } // namespace gomoku::scene

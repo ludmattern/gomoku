@@ -11,6 +11,8 @@ void AScene::playSfx(const char* name, float volume) const
 {
     if (!context_.resourceManager || !context_.sfxVoices)
         return;
+    if (!context_.sfxEnabled)
+        return;
     auto* buffer = context_.resourceManager->getSound(name);
     if (!buffer)
         return;
@@ -18,7 +20,8 @@ void AScene::playSfx(const char* name, float volume) const
     for (auto& voice : *context_.sfxVoices) {
         if (voice.getStatus() == sf::Sound::Status::Stopped) {
             voice.setBuffer(*buffer);
-            voice.setVolume(volume);
+            float vol = std::max(0.f, std::min(100.f, context_.sfxVolume));
+            voice.setVolume(std::min(100.f, volume * (vol / 100.f)));
             voice.play();
             return;
         }
@@ -27,7 +30,8 @@ void AScene::playSfx(const char* name, float volume) const
     auto& v = (*context_.sfxVoices)[0];
     v.stop();
     v.setBuffer(*buffer);
-    v.setVolume(volume);
+    float vol = std::max(0.f, std::min(100.f, context_.sfxVolume));
+    v.setVolume(std::min(100.f, volume * (vol / 100.f)));
     v.play();
 }
 
@@ -38,8 +42,10 @@ void AScene::playMusic(const char* path, bool loop, float volume) const
     context_.music->stop();
     if (context_.music->openFromFile(path)) {
         context_.music->setLoop(loop);
-        context_.music->setVolume(volume);
-        context_.music->play();
+        float vol = std::max(0.f, std::min(100.f, context_.musicVolume));
+        context_.music->setVolume(context_.musicEnabled ? std::min(100.f, volume * (vol / 100.f)) : 0.f);
+        if (context_.musicEnabled)
+            context_.music->play();
     }
 }
 

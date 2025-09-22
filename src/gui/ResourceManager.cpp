@@ -41,6 +41,18 @@ bool ResourceManager::init()
         return false;
     if (!loadTexture("empty_background", texturePath_ + "background.png"))
         return false;
+    if (!loadTexture("default_theme_button", texturePath_ + "ui/default_theme_button.png"))
+        return false;
+    if (!loadTexture("halloween_theme_button", texturePath_ + "ui/halloween_theme_button.png"))
+        return false;
+    if (!loadTexture("pastel_theme_button", texturePath_ + "ui/pastel_theme_button.png"))
+        return false;
+    if (!loadTexture("settings_menu", texturePath_ + "settings_menu.png"))
+        return false;
+    if (!loadTexture("sound_on", texturePath_ + "ui/sound_on.png"))
+        return false;
+    if (!loadTexture("sound_off", texturePath_ + "ui/sound_off.png"))
+        return false;
 
     setAudioPackage("default");
 
@@ -70,6 +82,12 @@ bool ResourceManager::setTexturePackage(const std::string& theme)
         {"vs_ai_button", "ui/vs_ai_button.png"},
         {"back_button", "ui/back_button.png"},
         {"empty_background", "background.png"},
+        {"default_theme_button", "ui/default_theme_button.png"},
+        {"halloween_theme_button", "ui/halloween_theme_button.png"},
+        {"pastel_theme_button", "ui/pastel_theme_button.png"},
+        {"settings_menu", "settings_menu.png"},
+        {"sound_on", "ui/sound_on.png"},
+        {"sound_off", "ui/sound_off.png"},
     };
 
     bool allOk = true;
