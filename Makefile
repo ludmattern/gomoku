@@ -19,11 +19,11 @@ ifeq ($(UNAME_S),Darwin)
     SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
     SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
 else
-	# Linux: use a configurable prefix (default $HOME/local if it exists, otherwise /usr)
-	SFML_DIR ?= $(shell if [ -d "$(HOME)/local" ]; then echo "$(HOME)/local"; else echo "/usr"; fi)
-	SFML_INCLUDE = -I$(SFML_DIR)/include
-	SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
-	SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
+    # Linux: use a configurable prefix (default $HOME/local if it exists, otherwise /usr)
+    SFML_DIR ?= $(shell if [ -d "$(HOME)/local" ]; then echo "$(HOME)/local"; else echo "/usr"; fi)
+    SFML_INCLUDE = -I$(SFML_DIR)/include
+    SFML_LIBS = -L$(SFML_DIR)/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+    SFML_RPATH = -Wl,-rpath,$(SFML_DIR)/lib
 endif
 
 # Project directories

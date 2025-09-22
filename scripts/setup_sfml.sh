@@ -41,14 +41,38 @@ else
         ls "$SFML_DIR"/lib/libsfml* "$SFML_DIR"/lib64/libsfml* 2>/dev/null | head -3
     else
         echo "❌ SFML not found in $SFML_DIR"
-        echo ""
-        echo "💡 Installation suggestions:"
-        echo "  Ubuntu/Debian: sudo apt install libsfml-dev"
-        echo "  Fedora/RHEL:   sudo dnf install SFML-devel"
-        echo "  Arch:          sudo pacman -S sfml"
-        echo ""
-        echo "Or set SFML_DIR to point to your SFML installation"
-        exit 1
+        echo "Attempting local installation into $HOME/local..."
+        mkdir -p "$HOME/local"
+
+        if [ -f "./scripts/install_sfml.sh" ]; then
+            echo "📦 Running local installer: ./scripts/install_sfml.sh"
+            # run installer with bash to avoid permission issues
+            bash ./scripts/install_sfml.sh || { echo "❌ Local installer failed"; }
+            SFML_DIR="$HOME/local"
+            if [ -f "$SFML_DIR/lib/libsfml-graphics.so" ] || [ -f "$SFML_DIR/lib64/libsfml-graphics.so" ]; then
+                echo "✅ SFML installed in $SFML_DIR"
+                ls "$SFML_DIR"/lib/libsfml* "$SFML_DIR"/lib64/libsfml* 2>/dev/null | head -3
+            else
+                echo "❌ SFML still not found after local installation"
+                echo ""
+                echo "💡 Installation suggestions:"
+                echo "  Ubuntu/Debian: sudo apt install libsfml-dev"
+                echo "  Fedora/RHEL:   sudo dnf install SFML-devel"
+                echo "  Arch:          sudo pacman -S sfml"
+                echo ""
+                echo "Or set SFML_DIR to point to your SFML installation"
+                exit 1
+            fi
+        else
+            echo "Installer script not found: ./scripts/install_sfml.sh"
+            echo "💡 Installation suggestions:"
+            echo "  Ubuntu/Debian: sudo apt install libsfml-dev"
+            echo "  Fedora/RHEL:   sudo dnf install SFML-devel"
+            echo "  Arch:          sudo pacman -S sfml"
+            echo ""
+            echo "Or set SFML_DIR to point to your SFML installation"
+            exit 1
+        fi
     fi
 fi
 
