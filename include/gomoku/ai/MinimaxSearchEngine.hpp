@@ -13,7 +13,8 @@ namespace gomoku::ai {
  */
 class MinimaxSearchEngine : public ISearchEngine {
 public:
-    explicit MinimaxSearchEngine(const SearchConfig& config = {});
+    MinimaxSearchEngine();
+    explicit MinimaxSearchEngine(const SearchConfig& config);
     ~MinimaxSearchEngine() override = default;
 
     // Configuration methods

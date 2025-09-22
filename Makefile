@@ -44,6 +44,7 @@ CORE_SRC = \
 	$(SRC_DIR)/gomoku/core/Logger.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearch.cpp \
 	$(SRC_DIR)/gomoku/ai/MinimaxSearchEngine.cpp \
+	$(SRC_DIR)/gomoku/ai/QuiescenceSearch.cpp \
 	$(SRC_DIR)/gomoku/ai/CandidateGenerator.cpp \
 	$(SRC_DIR)/gomoku/application/SessionController.cpp \
 	$(SRC_DIR)/gomoku/application/GameService.cpp \

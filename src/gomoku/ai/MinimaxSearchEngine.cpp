@@ -5,6 +5,12 @@
 
 namespace gomoku::ai {
 
+MinimaxSearchEngine::MinimaxSearchEngine()
+    : searchImpl_(SearchConfig {})
+    , config_ {}
+{
+}
+
 MinimaxSearchEngine::MinimaxSearchEngine(const SearchConfig& config)
     : searchImpl_(config)
     , config_(config)
