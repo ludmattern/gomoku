@@ -52,9 +52,9 @@ namespace {
 // Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
 std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, SearchStats* stats)
 {
-    LOG_INFO("MinimaxSearch: Début de recherche du meilleur coup pour " 
-             + std::string(board.toPlay() == Player::Black ? "Noir" : "Blanc"));
-    
+    LOG_INFO("MinimaxSearch: Début de recherche du meilleur coup pour "
+        + std::string(board.toPlay() == Player::Black ? "Noir" : "Blanc"));
+
     if (stats)
         *stats = SearchStats {};
 
@@ -128,8 +128,8 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
         if (res.move) {
             best = res.move;
             bestScore = res.score;
-            LOG_DEBUG("MinimaxSearch: Profondeur " + std::to_string(depth) + " - Score: " + std::to_string(bestScore) 
-                     + " - Coup: (" + std::to_string(res.move->pos.x) + "," + std::to_string(res.move->pos.y) + ")");
+            LOG_DEBUG("MinimaxSearch: Profondeur " + std::to_string(depth) + " - Score: " + std::to_string(bestScore)
+                + " - Coup: (" + std::to_string(res.move->pos.x) + "," + std::to_string(res.move->pos.y) + ")");
             if (stats) {
                 stats->depthReached = depth;
                 stats->principalVariation = { *res.move };
@@ -146,8 +146,8 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
         stats->timeMs = (int)duration_cast<milliseconds>(steady_clock::now() - t0).count();
         if (best) {
             LOG_INFO("MinimaxSearch: Recherche terminée - Temps: " + std::to_string(stats->timeMs) + "ms, "
-                     + "Nœuds: " + std::to_string(stats->nodes) + ", Profondeur: " + std::to_string(stats->depthReached)
-                     + " - Coup final: (" + std::to_string(best->pos.x) + "," + std::to_string(best->pos.y) + ")");
+                + "Nœuds: " + std::to_string(stats->nodes) + ", Profondeur: " + std::to_string(stats->depthReached)
+                + " - Coup final: (" + std::to_string(best->pos.x) + "," + std::to_string(best->pos.y) + ")");
         } else {
             LOG_WARNING("MinimaxSearch: Recherche terminée sans coup trouvé - Temps: " + std::to_string(stats->timeMs) + "ms");
         }
@@ -292,7 +292,7 @@ std::vector<Move> MinimaxSearch::orderedMoves(Board& b, const RuleSet& rules, Pl
     }
 
     LOG_DEBUG("MinimaxSearch: Tri de " + std::to_string(ms.size()) + " candidats par score heuristique");
-    
+
     struct Sc {
         Move m;
         int s;
