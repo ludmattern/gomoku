@@ -2,30 +2,38 @@
 #include "gomoku/ai/CandidateGenerator.hpp"
 #include "gomoku/core/Logger.hpp"
 #include <algorithm>
+#include <array>
+#include <bitset>
 
 namespace gomoku {
 
 namespace {
+
+    //-------------------------------------------
+    // Types & utilitaires bas niveau
+    //-------------------------------------------
     struct Rect {
         int x1, y1, x2, y2;
-    }; // inclusifs
+    };
+    struct P {
+        uint8_t x, y;
+    };
+
+    constexpr int BOARD_CELLS = BOARD_SIZE * BOARD_SIZE;
 
     inline bool inside(int x, int y)
     {
         return 0 <= x && x < BOARD_SIZE && 0 <= y && y < BOARD_SIZE;
     }
-
     inline bool intersect(const Rect& a, const Rect& b)
     {
         return !(a.x2 < b.x1 || b.x2 < a.x1 || a.y2 < b.y1 || b.y2 < a.y1);
     }
-
     inline Rect merge(const Rect& a, const Rect& b)
     {
         return { std::min(a.x1, b.x1), std::min(a.y1, b.y1),
             std::max(a.x2, b.x2), std::max(a.y2, b.y2) };
     }
-
     inline Rect dilate(const Rect& r, int m)
     {
         return { std::max(0, r.x1 - m), std::max(0, r.y1 - m),
@@ -33,10 +41,9 @@ namespace {
             std::min<int>(BOARD_SIZE - 1, r.y2 + m) };
     }
 
-    struct P {
-        uint8_t x, y;
-    };
-
+    //-------------------------------------------
+    // Étape 0 — Collecte des pierres
+    //-------------------------------------------
     void collectStones(const Board& b, std::vector<P>& out)
     {
         out.clear();
@@ -47,9 +54,11 @@ namespace {
                     out.push_back({ x, y });
     }
 
+    //-------------------------------------------
+    // Étape 1 — Îlots par proximité Chebyshev
+    //-------------------------------------------
     std::vector<Rect> buildIslands(const std::vector<P>& stones, uint8_t gap)
     {
-        // BFS sur proximité Chebyshev ≤ gap
         const int n = (int)stones.size();
         std::vector<uint8_t> vis(n, 0);
         std::vector<Rect> rects;
@@ -82,14 +91,15 @@ namespace {
                 }
                 rects.push_back(r);
                 islandCount++;
-                LOG_DEBUG("    Island " + std::to_string(islandCount) + ": " + std::to_string(q.size()) + " stones, zone[" + std::to_string(r.x1) + "," + std::to_string(r.y1) + "-" + std::to_string(r.x2) + "," + std::to_string(r.y2) + "]");
             }
         return rects;
     }
 
+    //-------------------------------------------
+    // Étape 2 — Fusion rectangulaire
+    //-------------------------------------------
     std::vector<Rect> mergeAll(std::vector<Rect> rs)
     {
-        // fusion itérative O(m^2) — m petit dans la pratique
         int mergeCount = 0;
         bool changed = true;
         while (changed) {
@@ -107,138 +117,213 @@ namespace {
             }
         nextOuter:;
         }
-        if (mergeCount > 0) {
-            LOG_DEBUG("    " + std::to_string(mergeCount) + " island merges performed");
-        }
         return rs;
     }
 
-} // namespace
-
-std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& rules,
-    Player toPlay, const CandidateConfig& cfg)
-{
-    (void)rules; // si des règles interdisent certains coups, le moteur les refusera à play()
-
-    LOG_DEBUG("CandidateGenerator: Starting candidate generation");
-    std::string playerStr = (toPlay == Player::Black) ? "Black" : "White";
-    LOG_DEBUG("  -> Player: " + playerStr);
-
-    // 1) cas trivial : plateau vide → centre
-    bool empty = true;
-    for (uint8_t y = 0; y < BOARD_SIZE && empty; ++y)
-        for (uint8_t x = 0; x < BOARD_SIZE; ++x)
-            if (b.at(x, y) != Cell::Empty) {
-                empty = false;
-                break;
-            }
-    if (empty) {
-        LOG_INFO("Empty board detected - center move");
-        Move c { { (uint8_t)(BOARD_SIZE / 2), (uint8_t)(BOARD_SIZE / 2) }, toPlay };
-        return { c };
+    std::vector<Rect> dilateAndMerge(std::vector<Rect> rs, int effMargin)
+    {
+        for (auto& r : rs)
+            r = dilate(r, effMargin);
+        return mergeAll(std::move(rs));
     }
 
-    // 2) îlots
-    std::vector<P> stones;
-    collectStones(b, stones);
-    LOG_DEBUG("  -> Stones found: " + std::to_string(stones.size()));
+    //-------------------------------------------
+    // Étape 3 — Masque O(1) des zones actives
+    //-------------------------------------------
+    using ActiveMask = std::array<uint8_t, BOARD_CELLS>;
+    ActiveMask buildActiveMask(const std::vector<Rect>& rects)
+    {
+        ActiveMask active {}; // zéro-initialisé
+        for (const auto& r : rects)
+            for (int y = r.y1; y <= r.y2; ++y)
+                for (int x = r.x1; x <= r.x2; ++x)
+                    active[y * BOARD_SIZE + x] = 1;
+        return active;
+    }
 
-    auto rects = buildIslands(stones, cfg.groupGap);
-    LOG_DEBUG("  -> Islands created: " + std::to_string(rects.size()));
+    //-------------------------------------------
+    // Étape 4 — Offsets diamant (cache thread_local)
+    //-------------------------------------------
+    using Offset = std::pair<int8_t, int8_t>;
 
-    for (auto& r : rects)
-        r = dilate(r, cfg.margin);
-    rects = mergeAll(std::move(rects));
-    LOG_DEBUG("  -> Islands after merge: " + std::to_string(rects.size()));
-
-    // 3) bitmap de déduplication
-    std::vector<uint8_t> seen(BOARD_SIZE * BOARD_SIZE, 0);
-    auto mark = [&](int x, int y) -> bool {
-        int i = y * BOARD_SIZE + x;
-        if (seen[i])
-            return false;
-        seen[i] = 1;
-        return true;
-    };
-
-    // 4) collecte des candidats par anneaux
-    std::vector<Move> out;
-    out.reserve(128);
-
-    auto emitNeighborhood = [&](uint8_t cx, uint8_t cy) {
-        for (int dy = -cfg.ringR; dy <= cfg.ringR; ++dy)
-            for (int dx = -cfg.ringR; dx <= cfg.ringR; ++dx) {
-                int x = (int)cx + dx, y = (int)cy + dy;
-                if (!inside(x, y))
-                    continue;
-                if (std::abs(dx) + std::abs(dy) > cfg.ringR)
-                    continue; // manhattan
-                if (b.at((uint8_t)x, (uint8_t)y) != Cell::Empty)
-                    continue;
-                if (!mark(x, y))
-                    continue;
-                out.push_back(Move { { (uint8_t)x, (uint8_t)y }, toPlay });
+    const std::vector<Offset>& diamondOffsets(int ringR)
+    {
+        static thread_local int cachedRingR = -1;
+        static thread_local std::vector<Offset> DIAMOND;
+        if (cachedRingR != ringR) {
+            cachedRingR = ringR;
+            DIAMOND.clear();
+            DIAMOND.reserve((2 * ringR + 1) * (2 * ringR + 1));
+            for (int dy = -ringR; dy <= ringR; ++dy) {
+                int rem = ringR - std::abs(dy);
+                for (int dx = -rem; dx <= rem; ++dx)
+                    DIAMOND.emplace_back((int8_t)dx, (int8_t)dy);
             }
-    };
+        }
+        return DIAMOND;
+    }
 
-    // 4a) anneaux autour des pierres
-    // Optionnellement inclure l'anneau autour des pierres adverses uniquement
-    if (cfg.includeOpponentRing) {
-        for (const auto& p : stones)
-            emitNeighborhood(p.x, p.y);
-    } else {
-        // Émettre uniquement autour des pierres du joueur courant
-        Cell mine = (toPlay == Player::Black ? Cell::Black : Cell::White);
-        for (const auto& p : stones) {
-            if (b.at(p.x, p.y) == mine)
-                emitNeighborhood(p.x, p.y);
+    //-------------------------------------------
+    // Déduplication (bitset compact)
+    //-------------------------------------------
+    using SeenSet = std::bitset<BOARD_CELLS>;
+    inline bool markIfNew(SeenSet& seen, int x, int y)
+    {
+        const int i = y * BOARD_SIZE + x;
+        if (seen.test(i))
+            return false;
+        seen.set(i);
+        return true;
+    }
+
+    //-------------------------------------------
+    // Étape 5 — Émission des candidats par anneaux
+    //-------------------------------------------
+    void emitNeighborhood(const Board& b,
+        const ActiveMask& active,
+        const std::vector<Offset>& ring,
+        uint8_t cx, uint8_t cy,
+        Player toPlay,
+        uint16_t maxCandidates,
+        SeenSet& seen,
+        std::vector<Move>& out)
+    {
+        for (auto [dx, dy] : ring) {
+            int x = (int)cx + dx, y = (int)cy + dy;
+            if ((unsigned)x >= BOARD_SIZE || (unsigned)y >= BOARD_SIZE)
+                continue;
+            int idx = y * BOARD_SIZE + x;
+            if (!active[idx])
+                continue; // clamp O(1)
+            if (b.at((uint8_t)x, (uint8_t)y) != Cell::Empty)
+                continue;
+            if (!markIfNew(seen, x, y))
+                continue;
+            out.push_back(Move { { (uint8_t)x, (uint8_t)y }, toPlay });
+            if (out.size() >= maxCandidates)
+                return;
         }
     }
 
-    LOG_DEBUG("  -> Candidates after rings: " + std::to_string(out.size()));
+    void generateFromRings(const Board& b,
+        const std::vector<P>& stones,
+        const ActiveMask& active,
+        Player toPlay,
+        const CandidateConfig& cfg,
+        SeenSet& seen,
+        std::vector<Move>& out)
+    {
+        const auto& ring = diamondOffsets(cfg.ringR);
+        out.reserve(cfg.maxCandidates);
 
-    // 5) clamp aux rectangles (supprime lointains accidentels)
-    if (!rects.empty()) {
-        size_t beforeClamp = out.size();
-        out.erase(std::remove_if(out.begin(), out.end(), [&](const Move& m) {
-            for (const auto& r : rects)
-                if (r.x1 <= m.pos.x && m.pos.x <= r.x2 && r.y1 <= m.pos.y && m.pos.y <= r.y2)
-                    return false;
-            return true;
-        }),
-            out.end());
-        LOG_DEBUG("  -> Candidates after clamping: " + std::to_string(out.size()) + " (removed: " + std::to_string(beforeClamp - out.size()) + ")");
+        if (cfg.includeOpponentRing) {
+            for (const auto& p : stones) {
+                emitNeighborhood(b, active, ring, p.x, p.y, toPlay, cfg.maxCandidates, seen, out);
+                if (out.size() >= cfg.maxCandidates)
+                    return;
+            }
+        } else {
+            const Cell mine = (toPlay == Player::Black ? Cell::Black : Cell::White);
+            for (const auto& p : stones) {
+                if (b.at(p.x, p.y) != mine)
+                    continue;
+                emitNeighborhood(b, active, ring, p.x, p.y, toPlay, cfg.maxCandidates, seen, out);
+                if (out.size() >= cfg.maxCandidates)
+                    return;
+            }
+        }
     }
 
-    // 6) fallback si trop peu : on ratisse finement dans les rectangles (scan)
-    if (out.size() < 12) {
-        LOG_DEBUG("  -> Fallback: rectangle scan (insufficient candidates: " + std::to_string(out.size()) + ")");
-        size_t beforeScan = out.size();
+    //-------------------------------------------
+    // Étape 6 — Fallback scan des rectangles
+    //-------------------------------------------
+    void fallbackScan(const Board& b,
+        const std::vector<Rect>& rects,
+        const ActiveMask& active,
+        Player toPlay,
+        const CandidateConfig& cfg,
+        SeenSet& seen,
+        std::vector<Move>& out)
+    {
         for (const auto& r : rects) {
             for (int y = r.y1; y <= r.y2; ++y)
                 for (int x = r.x1; x <= r.x2; ++x) {
                     if (b.at((uint8_t)x, (uint8_t)y) != Cell::Empty)
                         continue;
-                    if (!mark(x, y))
+                    if (!active[y * BOARD_SIZE + x])
+                        continue; // cohérence
+                    if (!markIfNew(seen, x, y))
                         continue;
                     out.push_back(Move { { (uint8_t)x, (uint8_t)y }, toPlay });
                     if (out.size() >= cfg.maxCandidates)
-                        goto done;
+                        return;
                 }
         }
-        LOG_DEBUG("  -> Candidates after scan: " + std::to_string(out.size()) + " (added: " + std::to_string(out.size() - beforeScan) + ")");
     }
 
-done:
-    if (out.size() > cfg.maxCandidates) {
-        LOG_DEBUG("  -> Candidate limitation: " + std::to_string(out.size()) + " -> " + std::to_string(cfg.maxCandidates));
-        out.resize(cfg.maxCandidates);
+    //-------------------------------------------
+    // Étape 7 — Finalisation (cap + alertes)
+    //-------------------------------------------
+    void finalizeCandidates(std::vector<Move>& out, uint16_t maxCandidates)
+    {
+        if (out.size() > maxCandidates) {
+            out.resize(maxCandidates);
+        }
     }
 
-    if (out.size() < 5) {
-        LOG_WARNING("Few candidates generated (" + std::to_string(out.size()) + ") - critical situation");
+    //-------------------------------------------
+    // Utilitaire — Plateau vide ?
+    //-------------------------------------------
+    bool isEmptyBoard(const Board& b)
+    {
+        for (uint8_t y = 0; y < BOARD_SIZE; ++y)
+            for (uint8_t x = 0; x < BOARD_SIZE; ++x)
+                if (b.at(x, y) != Cell::Empty)
+                    return false;
+        return true;
     }
 
+} // namespace
+
+//-------------------------------------------
+// API — Pipeline lisible
+//-------------------------------------------
+std::vector<Move> CandidateGenerator::generate(const Board& b, const RuleSet& rules,
+    Player toPlay, const CandidateConfig& cfg)
+{
+    (void)rules; // légalité fine = moteur play/undo
+
+    // 0) Plateau vide -> centre
+    if (isEmptyBoard(b)) {
+        LOG_INFO("Empty board detected - center move");
+        Move c { { (uint8_t)(BOARD_SIZE / 2), (uint8_t)(BOARD_SIZE / 2) }, toPlay };
+        return { c };
+    }
+
+    // 1) Collecte des pierres
+    std::vector<P> stones;
+    collectStones(b, stones);
+
+    // 2) Îlots (BFS Chebyshev) -> dilatation(>=ringR) -> fusion
+    auto rects = buildIslands(stones, cfg.groupGap);
+    const int effMargin = std::max<int>(cfg.margin, cfg.ringR);
+    rects = dilateAndMerge(std::move(rects), effMargin);
+
+    // 3) Masque des zones actives
+    ActiveMask active = buildActiveMask(rects);
+
+    // 4–5) Anneaux (Manhattan <= ringR) clampés par masque + dédup bitset
+    SeenSet seen;
+    std::vector<Move> out;
+    generateFromRings(b, stones, active, toPlay, cfg, seen, out);
+
+    // 6) Fallback scan si densité insuffisante
+    if (out.size() < 12) {
+        fallbackScan(b, rects, active, toPlay, cfg, seen, out);
+    }
+
+    // 7) Finalisation
+    finalizeCandidates(out, cfg.maxCandidates);
     return out;
 }
 

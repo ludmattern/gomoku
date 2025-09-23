@@ -1,5 +1,5 @@
 #pragma once
-#include "gomoku/Notation.hpp"
+#include "notation.hpp"
 #include "gomoku/interfaces/IBoardView.hpp"
 #include <iostream>
 #include <optional>
