@@ -114,7 +114,7 @@ clean:
 fclean: clean
 	@rm -f $(TARGET) $(LIB_NAME) $(TEST_BIN)
 	@if [ -f "$(HOME)/.config/gomoku/preferences.json" ]; then \
-		rm -f "$(HOME)/.config/gomoku/preferences.json"; \
+		rm -rf "$(HOME)/.config/gomoku"; \
 		echo "[FCLEAN] Removed user config: $(HOME)/.config/gomoku/preferences.json"; \
 	fi
 
