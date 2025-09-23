@@ -18,13 +18,6 @@ struct SearchConfig {
     std::size_t ttBytes = (64ull << 20); // Taille allouée à la table de transposition
     unsigned long long nodeCap = 0; // Limite de nœuds dure (0 = désactivée)
     QuiescenceSearch::Config quiescence; // Configuration de la quiescence
-
-    // Late Move Reduction (LMR) parameters
-    bool lmrEnabled = true; // Activer/désactiver LMR
-    int lmrMinDepth = 3; // Profondeur minimale pour appliquer LMR
-    int lmrMoveThreshold = 4; // Indice de mouvement à partir duquel appliquer LMR
-    int lmrReduction = 1; // Base de réduction
-    int lmrTableMove12Bonus = 1; // Bonus de réduction après moveIndex >= 12
 };
 
 class MinimaxSearch {
@@ -51,12 +44,6 @@ public:
     void setNodeCap(unsigned long long cap) { cfg.nodeCap = cap; }
     void setMaxQuiescenceDepth(int depth) { cfg.quiescence.maxDepth = depth; }
     void setQuiescenceEnabled(bool enabled) { cfg.quiescence.enabled = enabled; }
-
-    // Late Move Reduction configuration
-    void setLMREnabled(bool enabled) { cfg.lmrEnabled = enabled; }
-    void setLMRMinDepth(int depth) { cfg.lmrMinDepth = depth; }
-    void setLMRMoveThreshold(int threshold) { cfg.lmrMoveThreshold = threshold; }
-    void setLMRReduction(int reduction) { cfg.lmrReduction = reduction; }
 
     void clearTranspositionTable() { tt.resizeBytes(cfg.ttBytes); }
     void clearKillersAndHistoryPublic() { clearKillersAndHistory(); }
@@ -107,25 +94,17 @@ private:
     }
 
     // Génération + ordering (léger)
-    std::vector<Move> orderedMoves(Board& b, const RuleSet& rules, Player toPlay, int depth = 0) const;
+    // Note: the last parameter is ply (distance from root), used for killer heuristic lookup
+    std::vector<Move> orderedMoves(Board& b, const RuleSet& rules, Player toPlay, int ply = 0) const;
     int quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint8_t y) const;
+    int quickScoreDefense(const Board& b, Player meP, uint8_t x, uint8_t y) const;
 
     // Killer Moves & History Heuristic
     void clearKillersAndHistory();
-    void storeKiller(int depth, const Move& move);
-    bool isKillerMove(int depth, const Move& move) const;
+    void storeKiller(int ply, const Move& move);
+    bool isKillerMove(int ply, const Move& move) const;
     void updateHistory(const Move& move, int depth);
     int getHistoryScore(const Move& move) const;
-
-    // Late Move Reduction
-    int calculateLMRReduction(int depth, int moveIndex, bool isPVNode) const;
-
-    // Advanced Pattern Detection
-    int evaluateAdvancedPatterns(const Board& b, uint8_t x, uint8_t y, Player player, bool orderingContext) const;
-    bool detectSplit4(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const;
-    bool detectDouble3(const Board& b, uint8_t x, uint8_t y, Player player) const;
-    bool detectFork3(const Board& b, uint8_t x, uint8_t y, Player player) const;
-    int countThreatLines(const Board& b, uint8_t x, uint8_t y, Player player, int minLength) const;
 
     // Principal Variation (PV) storage
     void clearPV();

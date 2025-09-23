@@ -1,3 +1,4 @@
+// gomoku/ai/QuiescenceSearch.cpp
 #include "gomoku/ai/QuiescenceSearch.hpp"
 #include "gomoku/ai/CandidateGenerator.hpp"
 #include "gomoku/core/Board.hpp"
@@ -6,11 +7,30 @@
 
 namespace gomoku {
 
+// --- helper d'ordonnancement très léger (inline) ---
+static inline int qOrderKey(const Board& b, const Move& m, Player toPlay)
+{
+    // Heuristique cheap: priorité si case adjacente immédiate à une pierre,
+    // bonus si la pose gagne/bloque en 1 (détecté via motifs rapides).
+    // NB: volontairement simple (O(1) voisinage).
+    int key = 0;
+    auto inside = [&](int X, int Y) { return 0 <= X && X < BOARD_SIZE && 0 <= Y && Y < BOARD_SIZE; };
+    for (int dx = -1; dx <= 1; ++dx)
+        for (int dy = -1; dy <= 1; ++dy)
+            if (dx || dy) {
+                int X = (int)m.pos.x + dx, Y = (int)m.pos.y + dy;
+                if (inside(X, Y) && b.at((uint8_t)X, (uint8_t)Y) != Cell::Empty)
+                    key += 1;
+            }
+    // Légers bonus côté trait
+    (void)toPlay;
+    return key;
+}
+
 QuiescenceSearch::QuiescenceSearch()
     : config_ {}
 {
 }
-
 QuiescenceSearch::QuiescenceSearch(const Config& config)
     : config_(config)
 {
@@ -24,143 +44,134 @@ QuiescenceSearch::Result QuiescenceSearch::search(
     if (stats)
         ++stats->qnodes;
     ++visitedNodes_;
-
     if (shouldStop(stats)) {
         return { evaluateFunction(board, maxPlayer), std::nullopt };
     }
 
-    // Limiter la profondeur de quiescence
+    // --- borne profondeur quiescence ---
     if (depth >= config_.maxDepth) {
         return { evaluateFunction(board, maxPlayer), std::nullopt };
     }
 
-    // Évaluation statique de la position
-    int standPat = evaluateFunction(board, maxPlayer);
-
-    // Fin de partie ?
-    if (board.status() != GameStatus::Ongoing) {
+    // --- terminal avant toute évaluation lourde ---
+    GameStatus st = board.status();
+    if (st != GameStatus::Ongoing) {
         int val = 0;
-        if (board.status() == GameStatus::WinByAlign || board.status() == GameStatus::WinByCapture) {
+        if (st == GameStatus::WinByAlign || st == GameStatus::WinByCapture) {
             Player winner = opponent(board.toPlay());
             val = (winner == maxPlayer) ? 1'000'000 : -1'000'000;
         }
         return { val, std::nullopt };
     }
 
+    // --- stand pat ---
+    const int standPat = evaluateFunction(board, maxPlayer);
+
     Player toPlay = board.toPlay();
 
-    // Si la position est calme, retourner l'évaluation statique
-    if (isQuiet(board, rules, toPlay)) {
-        return { standPat, std::nullopt };
-    }
-
-    // Beta cutoff
-    if (toPlay == maxPlayer && standPat >= beta) {
-        return { beta, std::nullopt };
-    }
-
-    // Alpha cutoff
-    if (toPlay != maxPlayer && standPat <= alpha) {
-        return { alpha, std::nullopt };
-    }
-
-    // Mise à jour de alpha/beta pour le joueur
+    // --- fail-soft coups standards sur standPat ---
     if (toPlay == maxPlayer) {
-        alpha = std::max(alpha, standPat);
+        if (standPat >= beta)
+            return { standPat, std::nullopt };
+        if (standPat > alpha)
+            alpha = standPat;
     } else {
-        beta = std::min(beta, standPat);
+        if (standPat <= alpha)
+            return { standPat, std::nullopt };
+        if (standPat < beta)
+            beta = standPat;
     }
 
-    // Générer seulement les mouvements tactiques
+    // --- génération unique des coups tactiques ---
     auto moves = generateTacticalMoves(board, rules, toPlay);
+
+    // position calme => standPat (supprime le double scan d'avant)
     if (moves.empty()) {
         return { standPat, std::nullopt };
     }
 
-    std::optional<Move> bestMove {};
-
-    if (toPlay == maxPlayer) {
-        int best = standPat;
-        for (const auto& move : moves) {
-            if (shouldStop(stats))
-                break;
-
-            if (!board.play(move, rules, nullptr))
-                continue;
-
-            auto result = search(board, rules, alpha, beta, maxPlayer, evaluateFunction, stats, depth + 1);
-            board.undo();
-
-            if (shouldStop(stats))
-                break;
-
-            if (result.score > best) {
-                best = result.score;
-                bestMove = move;
-            }
-            alpha = std::max(alpha, result.score);
-            if (alpha >= beta)
-                break;
-        }
-        return { best, bestMove };
-    } else {
-        int best = standPat;
-        for (const auto& move : moves) {
-            if (shouldStop(stats))
-                break;
-
-            if (!board.play(move, rules, nullptr))
-                continue;
-
-            auto result = search(board, rules, alpha, beta, maxPlayer, evaluateFunction, stats, depth + 1);
-            board.undo();
-
-            if (shouldStop(stats))
-                break;
-
-            if (result.score < best) {
-                best = result.score;
-                bestMove = move;
-            }
-            beta = std::min(beta, result.score);
-            if (beta <= alpha)
-                break;
-        }
-        return { best, bestMove };
+    // --- delta pruning très simple ---
+    // Suppose qu’un seul coup tactique peut améliorer d’environ un open-4 (~120k).
+    // Ajuste selon ton barème.
+    const int delta = 120000;
+    if (toPlay == maxPlayer && standPat + delta <= alpha) {
+        return { standPat, std::nullopt };
     }
+    if (toPlay != maxPlayer && standPat - delta >= beta) {
+        return { standPat, std::nullopt };
+    }
+
+    // --- ordonnancement cheap pour booster les cutoffs ---
+    std::sort(moves.begin(), moves.end(),
+        [&](const Move& a, const Move& b) {
+            return qOrderKey(board, a, toPlay) > qOrderKey(board, b, toPlay);
+        });
+
+    // --- NegaMax léger (réduit les branches) ---
+    int best = standPat;
+    std::optional<Move> bestMove;
+
+    for (const auto& mv : moves) {
+        if (shouldStop(stats))
+            break;
+        if (!board.play(mv, rules, nullptr))
+            continue;
+
+        // NegaMax: inverse les bornes et le signe en alternant max/min implicite
+        auto res = search(board, rules, -beta, -alpha, maxPlayer,
+            evaluateFunction, stats, depth + 1);
+        board.undo();
+        if (shouldStop(stats))
+            break;
+
+        int score = -res.score;
+
+        if (score > best) {
+            best = score;
+            bestMove = mv;
+        }
+        if (score > alpha) {
+            alpha = score;
+        }
+        if (alpha >= beta) {
+            break; // cutoff
+        }
+    }
+
+    return { best, bestMove };
 }
 
 bool QuiescenceSearch::isQuiet(const Board& board, const RuleSet& rules, Player toPlay)
 {
     if (!config_.enabled)
         return true;
-
-    // Une position est calme s'il n'y a pas de mouvements tactiquement critiques
+    // NOTE: ne génère plus deux fois. Conservé pour compat API, mais non utilisé par search().
     auto tacticals = generateTacticalMoves(board, rules, toPlay);
     return tacticals.empty();
 }
 
-std::vector<Move> QuiescenceSearch::generateTacticalMoves(const Board& board, const RuleSet& rules, Player toPlay)
+std::vector<Move> QuiescenceSearch::generateTacticalMoves(
+    const Board& board, const RuleSet& rules, Player toPlay)
 {
-    // Générer tous les mouvements candidats
     CandidateConfig config;
+    // Conseil: ici tu peux basculer vers un énumérateur « tactique only »
+    // pour éviter un full CandidateGenerator si besoin.
     auto allMoves = CandidateGenerator::generate(board, rules, toPlay, config);
 
     std::vector<Move> tactical;
     tactical.reserve(config_.maxTacticalMoves);
 
-    // Filtrer les mouvements tactiquement importants
-    for (const auto& move : allMoves) {
-        if (isTacticalMove(board, move.pos.x, move.pos.y, toPlay)) {
-            tactical.push_back(move);
+    // Filtre tactique (quick patterns) + early-out
+    for (const auto& m : allMoves) {
+        if (isTacticalMove(board, m.pos.x, m.pos.y, toPlay)) {
+            tactical.push_back(m);
+            if (tactical.size() >= (size_t)config_.maxTacticalMoves)
+                break;
         }
-        // Limiter le nombre pour éviter l'explosion combinatoire
-        if (tactical.size() >= static_cast<size_t>(config_.maxTacticalMoves))
-            break;
     }
-
     return tactical;
 }
+
 
 bool QuiescenceSearch::isTacticalMove(const Board& board, uint8_t x, uint8_t y, Player toPlay) const
 {
