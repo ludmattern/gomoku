@@ -597,8 +597,8 @@ void MinimaxSearch::clearKillersAndHistory()
     }
 
     // Initialiser la table d'historique à 0
-    for (int x = 0; x < 15; ++x) {
-        for (int y = 0; y < 15; ++y) {
+    for (int x = 0; x < 19; ++x) {
+        for (int y = 0; y < 19; ++y) {
             historyTable[x][y] = 0;
         }
     }
@@ -634,7 +634,7 @@ bool MinimaxSearch::isKillerMove(int ply, const Move& move) const
 
 void MinimaxSearch::updateHistory(const Move& move, int depth)
 {
-    if (move.pos.x < 15 && move.pos.y < 15) {
+    if (move.pos.x < 19 && move.pos.y < 19) {
         // Plus la coupure est profonde, plus elle est importante
         historyTable[move.pos.x][move.pos.y] += depth * depth;
     }
@@ -642,7 +642,7 @@ void MinimaxSearch::updateHistory(const Move& move, int depth)
 
 int MinimaxSearch::getHistoryScore(const Move& move) const
 {
-    if (move.pos.x < 15 && move.pos.y < 15) {
+    if (move.pos.x < 19 && move.pos.y < 19) {
         return historyTable[move.pos.x][move.pos.y];
     }
     return 0;

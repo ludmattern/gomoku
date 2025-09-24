@@ -67,7 +67,7 @@ private:
     Move killerMoves[MAX_DEPTH][MAX_KILLERS];
 
     // History Heuristic : [x][y] -> score d'historique
-    int historyTable[15][15];
+    int historyTable[19][19];
 
     TranspositionTable tt;
     QuiescenceSearch quiescenceSearch_;
