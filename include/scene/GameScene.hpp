@@ -33,7 +33,6 @@ private:
     mutable sf::Text hudText_;
     mutable int lastAiMs_ = -1;
     bool pendingAi_ = false;
-    int aiBudgetMs_ = 450;
     mutable bool framePresented_ = false;
     bool aiThinking_ = false;
     mutable sf::Clock inputClock_;

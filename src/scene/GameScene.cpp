@@ -177,7 +177,7 @@ void GameScene::update(sf::Time& deltaTime)
         aiThinking_ = true;
         auto before = gameSession_.snapshot();
         auto t0 = std::chrono::steady_clock::now();
-        auto aiResult = gameSession_.playAI(aiBudgetMs_);
+        auto aiResult = gameSession_.playAI(/* budget in ms */ 450);
         auto t1 = std::chrono::steady_clock::now();
         lastAiMs_ = (int)std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
         auto snap = gameSession_.snapshot();
