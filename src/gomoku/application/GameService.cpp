@@ -19,14 +19,12 @@ void GameService::startNewGame(const RuleSet& rules)
     rules_ = rules;
     board_->reset();
     moveHistory_.clear();
-    notifyGameStarted();
 }
 
 void GameService::reset()
 {
     board_->reset();
     moveHistory_.clear();
-    notifyGameStarted(); // reset is observed as a (re)start
 }
 
 GameStatus GameService::getGameStatus() const
@@ -67,10 +65,6 @@ PlayResult GameService::makeMove(const Move& move)
     auto result = board_->tryPlay(move, rules_);
     if (result.success) {
         moveHistory_.push_back(move);
-        notifyMovePlayed(move);
-        if (getGameStatus() != GameStatus::Ongoing) {
-            notifyGameEnded();
-        }
     }
 
     return result;
@@ -90,7 +84,6 @@ bool GameService::undo()
     bool success = board_->undo();
     if (success && !moveHistory_.empty()) {
         moveHistory_.pop_back();
-        notifyUndo();
     }
     return success;
 }
@@ -135,48 +128,6 @@ void GameService::setSearchEngine(std::unique_ptr<ISearchEngine> engine)
     searchEngine_ = std::move(engine);
 }
 
-// ---- Observer management ----
-void GameService::addObserver(IGameObserver* obs)
-{
-    if (!obs)
-        return;
-    if (std::find(observers_.begin(), observers_.end(), obs) == observers_.end()) {
-        observers_.push_back(obs);
-    }
-}
-
-void GameService::removeObserver(IGameObserver* obs)
-{
-    observers_.erase(std::remove(observers_.begin(), observers_.end(), obs), observers_.end());
-}
-
-void GameService::notifyGameStarted()
-{
-    for (auto* o : observers_) {
-        o->onGameStarted(rules_, *board_);
-    }
-}
-
-void GameService::notifyMovePlayed(const Move& move)
-{
-    for (auto* o : observers_) {
-        o->onMovePlayed(move, *board_, getGameStatus());
-    }
-}
-
-void GameService::notifyUndo()
-{
-    for (auto* o : observers_) {
-        o->onUndo(*board_, getGameStatus());
-    }
-}
-
-void GameService::notifyGameEnded()
-{
-    for (auto* o : observers_) {
-        o->onGameEnded(getGameStatus(), *board_);
-    }
-}
 
 bool GameService::validateMove(const Move& move, std::string* reason) const
 {

@@ -246,17 +246,8 @@ MinimaxSearch::ABResult MinimaxSearch::alphabeta(Board& b, const RuleSet& rules,
     }
 
     if (depth == 0) {
-        // Utiliser la recherche de quiescence
-        if (cfg.quiescence.enabled) {
-            auto evaluateFunc = [this](const Board& board, Player player) {
-                return evaluate(board, player);
-            };
-            auto qResult = quiescenceSearch_.search(b, rules, alpha, beta, maxPlayer, evaluateFunc, stats);
-            return { qResult.score, qResult.move };
-        } else {
-            int val = evaluate(b, maxPlayer);
-            return { val, std::nullopt };
-        }
+        int val = evaluate(b, maxPlayer);
+        return { val, std::nullopt };
     }
 
     Player toPlay = b.toPlay();

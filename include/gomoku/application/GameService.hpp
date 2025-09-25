@@ -1,7 +1,6 @@
 #pragma once
 #include "gomoku/application/MoveValidator.hpp"
 #include "gomoku/core/Types.hpp"
-#include "gomoku/interfaces/IGameObserver.hpp"
 #include "gomoku/interfaces/IGameService.hpp"
 #include "gomoku/interfaces/ISearchEngine.hpp"
 #include <memory>
@@ -48,9 +47,6 @@ public:
     std::optional<Move> getAIMove(int timeMs = 450);
     void setSearchEngine(std::unique_ptr<ISearchEngine> engine);
 
-    // Observer management
-    void addObserver(IGameObserver* obs);
-    void removeObserver(IGameObserver* obs);
 
 private:
     // Core game state
@@ -61,15 +57,6 @@ private:
     // Dependencies (injected)
     std::unique_ptr<ISearchEngine> searchEngine_;
     MoveValidator moveValidator_;
-
-    // Observers (non owning raw pointers; lifetime managed by caller)
-    std::vector<IGameObserver*> observers_;
-
-    // Notify helpers
-    void notifyGameStarted();
-    void notifyMovePlayed(const Move& move);
-    void notifyUndo();
-    void notifyGameEnded();
 
     // Internal helpers
     bool validateMove(const Move& move, std::string* reason) const;

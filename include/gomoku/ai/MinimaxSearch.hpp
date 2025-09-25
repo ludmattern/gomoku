@@ -1,5 +1,4 @@
 #pragma once
-#include "gomoku/ai/QuiescenceSearch.hpp"
 #include "gomoku/ai/SearchStats.hpp"
 #include "gomoku/ai/TranspositionTable.hpp"
 #include "gomoku/core/Types.hpp"
@@ -17,18 +16,14 @@ struct SearchConfig {
     int maxDepthHint = 11; // Profondeur max d'itération
     std::size_t ttBytes = (64ull << 20); // Taille allouée à la table de transposition
     unsigned long long nodeCap = 0; // Limite de nœuds dure (0 = désactivée)
-    QuiescenceSearch::Config quiescence; // Configuration de la quiescence
 };
 
 class MinimaxSearch {
 public:
     explicit MinimaxSearch(const SearchConfig& conf)
         : cfg(conf)
-        , quiescenceSearch_(conf.quiescence)
     {
         clearKillersAndHistory();
-        // Définir le callback d'arrêt pour la quiescence
-        quiescenceSearch_.setStopCallback([this]() { return this->expired(); });
     }
 
     std::optional<Move> bestMove(Board& board, const RuleSet& rules, SearchStats* stats);
@@ -42,8 +37,6 @@ public:
         tt.resizeBytes(bytes);
     }
     void setNodeCap(unsigned long long cap) { cfg.nodeCap = cap; }
-    void setMaxQuiescenceDepth(int depth) { cfg.quiescence.maxDepth = depth; }
-    void setQuiescenceEnabled(bool enabled) { cfg.quiescence.enabled = enabled; }
 
     void clearTranspositionTable() { tt.resizeBytes(cfg.ttBytes); }
     void clearKillersAndHistoryPublic() { clearKillersAndHistory(); }
@@ -70,7 +63,6 @@ private:
     int historyTable[19][19];
 
     TranspositionTable tt;
-    QuiescenceSearch quiescenceSearch_;
 
     int evaluate(const Board& b, Player pov) const;
     int evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const;
