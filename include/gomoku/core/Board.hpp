@@ -28,6 +28,9 @@ public:
     bool isInside(uint8_t x, uint8_t y) const { return x < BOARD_SIZE && y < BOARD_SIZE; }
     bool isEmpty(uint8_t x, uint8_t y) const { return isInside(x, y) && cells[idx(x, y)] == Cell::Empty; }
 
+    // Stone count (tracked incrementally)
+    int stoneCount(Player p) const { return (p == Player::Black) ? blackStones : whiteStones; }
+
     PlayResult tryPlay(Move m, const RuleSet& rules);
     bool undo();
 
@@ -52,12 +55,14 @@ private:
     std::array<Cell, N> cells {};
     Player currentPlayer { Player::Black };
     int blackPairs { 0 }, whitePairs { 0 };
+    int blackStones { 0 }, whiteStones { 0 }; // tracked counts
     GameStatus gameState { GameStatus::Ongoing };
 
     struct UndoEntry {
         Move move {};
         std::vector<Pos> capturedStones; // pierres capturées
         int blackPairsBefore { 0 }, whitePairsBefore { 0 };
+        int blackStonesBefore { 0 }, whiteStonesBefore { 0 };
         GameStatus stateBefore { GameStatus::Ongoing };
         Player playerBefore { Player::Black };
     };

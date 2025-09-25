@@ -49,6 +49,7 @@ void Board::reset()
     cells.fill(Cell::Empty);
     currentPlayer = Player::Black;
     blackPairs = whitePairs = 0;
+    blackStones = whiteStones = 0;
     gameState = GameStatus::Ongoing;
     moveHistory.clear();
 
@@ -258,12 +259,19 @@ PlayResult Board::applyCore(Move m, const RuleSet& rules, bool record)
         u.move = m;
         u.blackPairsBefore = blackPairs;
         u.whitePairsBefore = whitePairs;
+        u.blackStonesBefore = blackStones;
+        u.whiteStonesBefore = whiteStones;
         u.stateBefore = gameState;
         u.playerBefore = currentPlayer;
     }
 
     cells[idx(m.pos.x, m.pos.y)] = playerToCell(m.by);
     zobristHash ^= z_of(playerToCell(m.by), m.pos.x, m.pos.y);
+    // Track stone counts
+    if (m.by == Player::Black)
+        ++blackStones;
+    else
+        ++whiteStones;
 
     std::vector<Pos> capturedLocal; // utilisera u.capturedStones si record
     auto& capVec = record ? u.capturedStones : capturedLocal;
@@ -276,6 +284,11 @@ PlayResult Board::applyCore(Move m, const RuleSet& rules, bool record)
         Cell oppC = (m.by == Player::Black ? Cell::White : Cell::Black);
         for (auto rp : capVec) {
             zobristHash ^= z_of(oppC, rp.x, rp.y);
+            // Decrement opponent stone counts for captured stones
+            if (oppC == Cell::Black)
+                --blackStones;
+            else
+                --whiteStones;
         }
     }
 
@@ -318,6 +331,8 @@ bool Board::speculativeTry(Move m, const RuleSet& rules, PlayResult* out)
     Player playerBefore = currentPlayer;
     int blackPairsBefore = blackPairs;
     int whitePairsBefore = whitePairs;
+    int blackStonesBefore = blackStones;
+    int whiteStonesBefore = whiteStones;
     GameStatus statusBefore = gameState;
 
     struct CellSnapshot {
@@ -363,6 +378,11 @@ bool Board::speculativeTry(Move m, const RuleSet& rules, PlayResult* out)
     // ROLLBACK : retirer la pierre posée et restaurer les cellules capturées.
     // La pierre jouée est toujours à m.pos si succès.
     cells[idx(m.pos.x, m.pos.y)] = center.before; // normalement Empty
+    // adjust stone counts for the removed placed stone
+    if (m.by == Player::Black)
+        --blackStones;
+    else
+        --whiteStones;
 
     // Restaurer chaque cellule candidate devenue vide alors qu'elle ne l'était pas avant
     for (int i = 0; i < candCount; ++i) {
@@ -372,12 +392,18 @@ bool Board::speculativeTry(Move m, const RuleSet& rules, PlayResult* out)
         if (snap.before != Cell::Empty && after == Cell::Empty) {
             // (snap.before devrait être oppC en pratique)
             cells[idx(snap.p.x, snap.p.y)] = snap.before;
+            if (snap.before == Cell::Black)
+                ++blackStones;
+            else if (snap.before == Cell::White)
+                ++whiteStones;
         }
     }
 
     // Restaurer compteurs & statut & trait & hash
     blackPairs = blackPairsBefore;
     whitePairs = whitePairsBefore;
+    blackStones = blackStonesBefore;
+    whiteStones = whiteStonesBefore;
     gameState = statusBefore;
     currentPlayer = playerBefore;
     zobristHash = hashBefore; // hash global cohérent (inclut side to move)
@@ -400,6 +426,11 @@ bool Board::undo()
     cells[idx(u.move.pos.x, u.move.pos.y)] = Cell::Empty;
     // Zobrist: retirer la pierre annulée
     zobristHash ^= z_of(playerToCell(u.move.by), u.move.pos.x, u.move.pos.y);
+    // Update stone count for removed stone
+    if (u.move.by == Player::Black)
+        --blackStones;
+    else
+        --whiteStones;
 
     // Restaurer les pierres capturées
     Cell oppC = (u.move.by == Player::Black ? Cell::White : Cell::Black);
@@ -407,9 +438,15 @@ bool Board::undo()
         cells[idx(rp.x, rp.y)] = oppC;
         // Zobrist: remettre les capturées
         zobristHash ^= z_of(oppC, rp.x, rp.y);
+        if (oppC == Cell::Black)
+            ++blackStones;
+        else
+            ++whiteStones;
     }
     blackPairs = u.blackPairsBefore;
     whitePairs = u.whitePairsBefore;
+    blackStones = u.blackStonesBefore;
+    whiteStones = u.whiteStonesBefore;
     gameState = u.stateBefore;
     currentPlayer = u.playerBefore;
     return true;

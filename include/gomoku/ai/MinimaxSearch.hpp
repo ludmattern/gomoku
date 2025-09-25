@@ -23,88 +23,119 @@ public:
     explicit MinimaxSearch(const SearchConfig& conf)
         : cfg(conf)
     {
-        clearKillersAndHistory();
     }
 
     std::optional<Move> bestMove(Board& board, const RuleSet& rules, SearchStats* stats);
 
-    // --- Public utility / configuration API (added) ---
+    // Configuration helpers used by MinimaxSearchEngine
     void setTimeBudgetMs(int ms) { cfg.timeBudgetMs = ms; }
     void setMaxDepthHint(int d) { cfg.maxDepthHint = d; }
+
     void setTranspositionTableSize(std::size_t bytes)
     {
         cfg.ttBytes = bytes;
         tt.resizeBytes(bytes);
     }
-    void setNodeCap(unsigned long long cap) { cfg.nodeCap = cap; }
 
     void clearTranspositionTable() { tt.resizeBytes(cfg.ttBytes); }
-    void clearKillersAndHistoryPublic() { clearKillersAndHistory(); }
 
-    int evaluatePublic(const Board& b, Player pov) const { return evaluate(b, pov); }
-    std::vector<Move> orderedMovesPublic(Board& b, const RuleSet& rules, Player toPlay) const { return orderedMoves(b, rules, toPlay, 0); }
+    // Lightweight public helpers for tooling/analysis
+    int evaluatePublic(const Board& /*board*/, Player /*perspective*/) const { return 0; }
+    std::vector<Move> orderedMovesPublic(const Board& board, const RuleSet& rules, Player toPlay) const;
 
 private:
-    SearchConfig cfg {};
-
-    // --- état runtime
-    std::chrono::steady_clock::time_point t0;
-    int budgetMs = 0;
-    bool timeUp = false;
-
-    mutable unsigned long long visited = 0;
-
-    // --- Killer Moves & History Heuristic
-    static constexpr int MAX_DEPTH = 64;
-    static constexpr int MAX_KILLERS = 2; // 2 killer moves par profondeur
-    Move killerMoves[MAX_DEPTH][MAX_KILLERS];
-
-    // History Heuristic : [x][y] -> score d'historique
-    int historyTable[19][19];
-
-    TranspositionTable tt;
-
-    int evaluate(const Board& b, Player pov) const;
-    int evaluateOneDir(const Board& b, uint8_t x, uint8_t y, Cell who, int dx, int dy) const;
-
-    struct ABResult {
-        int score;
-        std::optional<Move> move;
+    // Shared search context to avoid long parameter lists
+    struct SearchContext {
+        const RuleSet& rules;
+        std::chrono::steady_clock::time_point deadline;
+        SearchStats* stats { nullptr };
+        unsigned long long nodeCap { 0 };
     };
+    // --- Constants for search scoring ---
+    static constexpr int INF = 1'000'000; // Generic infinity bound for alpha-beta
+    static constexpr int MATE_SCORE = 900'000; // Base score for mate-like terminal outcomes
 
-    // Alpha-Beta search with Principal Variation tracking
-    ABResult alphabeta(Board& b, const RuleSet& rules, int depth, int alpha, int beta, Player maxPlayer, SearchStats* stats, int ply);
+    // --- Core search primitives (signatures only) ---
 
-    inline bool expired() const
+    // Negamax with alpha-beta pruning and PVS. Returns best score and fills PV.
+    // - depth: remaining plies to search (>= 0)
+    // - alpha/beta: current search window
+    // - toMove: side to move at this node
+    // - ply: distance from root (for mate distance correction)
+    // - stats: optional collector for node/qnode counters
+    // - pvOut: principal variation to be populated with best line
+    // - deadline: stop time for time management
+    int negamax(Board& board,
+        int depth,
+        int alpha,
+        int beta,
+        int ply,
+        std::vector<Move>& pvOut,
+        const SearchContext& ctx);
+
+    // Quiescence search to stabilize evaluations in tactical positions.
+    // Searches only tactical moves (captures/menaces fortes) until a quiet position.
+    int qsearch(Board& board,
+        int alpha,
+        int beta,
+        int ply,
+        const SearchContext& ctx);
+
+    // Fast static evaluation of a position from a given perspective (side-to-move in negamax).
+    int evaluate(const Board& board, Player perspective) const;
+
+    // Move ordering at a node: combines TT move, tactical generator, killers/history, etc.
+    // For now the implementation will reuse CandidateGenerator as a base and sort.
+    std::vector<Move> orderMoves(const Board& board,
+        const RuleSet& rules,
+        Player toMove,
+        const std::optional<Move>& ttMove) const;
+
+    // Time management: returns true when we should abort the current search (soft stop).
+    bool cutoffByTime(const SearchContext& ctx) const;
+
+    // Terminal detection with score. Returns true if the position is terminal and sets outScore.
+    bool isTerminal(const Board& board, int ply, int& outScore) const;
+
+    // Transposition table helpers.
+    // Attempt to read an entry and, if applicable, return a bound for cutoff.
+    bool ttProbe(const Board& board, int depth, int alpha, int beta, int& outScore, std::optional<Move>& ttMove, TranspositionTable::Flag& outFlag) const;
+    // Store a result into the TT.
+    void ttStore(const Board& board, int depth, int score, TranspositionTable::Flag flag, const std::optional<Move>& best);
+
+    // Lightweight accounting for stats (node/qnode incrementers, killer/history updates, etc.).
+    inline void onNodeVisited(SearchStats* stats) const
     {
-        using namespace std::chrono;
-        if ((int)duration_cast<milliseconds>(steady_clock::now() - t0).count() >= budgetMs)
-            return true;
-        if (cfg.nodeCap > 0 && visited >= cfg.nodeCap)
-            return true;
-        return false;
+        if (stats)
+            ++stats->nodes;
+    }
+    inline void onQNodeVisited(SearchStats* stats) const
+    {
+        if (stats)
+            ++stats->qnodes;
     }
 
-    // Génération + ordering (léger)
-    // Note: the last parameter is ply (distance from root), used for killer heuristic lookup
-    std::vector<Move> orderedMoves(Board& b, const RuleSet& rules, Player toPlay, int ply = 0) const;
-    int quickScoreMove(const Board& b, Player toPlay, uint8_t x, uint8_t y) const;
-    int quickScoreDefense(const Board& b, Player meP, uint8_t x, uint8_t y) const;
+    // --- Helpers extracted from bestMove for readability ---
+    // Tries the immediate win shortcut if plausible; returns the winning move if found.
+    std::optional<Move> tryImmediateWinShortcut(Board& board,
+        const RuleSet& rules,
+        Player toPlay,
+        const std::vector<Move>& candidates) const;
 
-    // Killer Moves & History Heuristic
-    void clearKillersAndHistory();
-    void storeKiller(int ply, const Move& move);
-    bool isKillerMove(int ply, const Move& move) const;
-    void updateHistory(const Move& move, int depth);
-    int getHistoryScore(const Move& move) const;
+    // Runs one iterative-deepening step at a given depth; fills best, bestScore, pv and updates nodes.
+    bool runDepth(int depth,
+        Board& board,
+        const RuleSet& rules,
+        Player toPlay,
+        const std::vector<Move>& rootCandidates,
+        std::optional<Move>& best,
+        int& bestScore,
+        std::vector<Move>& pv,
+        long long& nodes,
+        const SearchContext& ctx);
 
-    // Principal Variation (PV) storage
-    void clearPV();
-    void setPVMove(int ply, const Move& m);
-    void copyChildPVUp(int ply);
-
-    Move pvTable[MAX_DEPTH][MAX_DEPTH] {};
-    int pvLen[MAX_DEPTH] {};
+    SearchConfig cfg {};
+    TranspositionTable tt;
 };
 
 } // namespace gomoku

@@ -89,16 +89,6 @@ struct RuleSet {
     uint8_t captureWinPairs = 5; // 5 pairs = 10 stones
 };
 
-// Represents the configuration for the engine
-struct EngineConfig {
-    RuleSet rules {}; // Game rules
-    int maxDepthHint = 6; // Maximum depth for search
-    int timeBudgetMs = 450; // Time budget in milliseconds
-    std::size_t ttBytes = 64ull << 20; // 64 MB
-    unsigned long long nodeCap = 0; // 0 = infinite (strict control by time)
-    uint32_t randomSeed = 0; // Seed for the random number generator
-};
-
 // Represents captured stone pairs count
 struct CaptureCount {
     int black = 0;
