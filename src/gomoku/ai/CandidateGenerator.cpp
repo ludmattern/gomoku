@@ -47,11 +47,10 @@ namespace {
     void collectStones(const Board& b, std::vector<P>& out)
     {
         out.clear();
-        out.reserve(256);
-        for (uint8_t y = 0; y < BOARD_SIZE; ++y)
-            for (uint8_t x = 0; x < BOARD_SIZE; ++x)
-                if (b.at(x, y) != Cell::Empty)
-                    out.push_back({ x, y });
+        const auto& occ = b.occupiedPositions();
+        out.reserve(occ.size());
+        for (const auto& pos : occ)
+            out.push_back(P { pos.x, pos.y });
     }
 
     //-------------------------------------------
@@ -276,11 +275,7 @@ namespace {
     //-------------------------------------------
     bool isEmptyBoard(const Board& b)
     {
-        for (uint8_t y = 0; y < BOARD_SIZE; ++y)
-            for (uint8_t x = 0; x < BOARD_SIZE; ++x)
-                if (b.at(x, y) != Cell::Empty)
-                    return false;
-        return true;
+        return b.occupiedPositions().empty();
     }
 
 } // namespace

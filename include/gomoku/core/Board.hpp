@@ -31,6 +31,28 @@ public:
     // Stone count (tracked incrementally)
     int stoneCount(Player p) const { return (p == Player::Black) ? blackStones : whiteStones; }
 
+    // Last move played (if any)
+    std::optional<Move> lastMove() const
+    {
+        if (moveHistory.empty())
+            return std::nullopt;
+        return moveHistory.back().move;
+    }
+
+    // Last k moves (most recent first). Returns up to k moves.
+    std::vector<Move> lastMoves(std::size_t k) const
+    {
+        std::vector<Move> out;
+        if (k == 0 || moveHistory.empty())
+            return out;
+        const std::size_t n = std::min(k, moveHistory.size());
+        out.reserve(n);
+        for (std::size_t i = 0; i < n; ++i) {
+            out.push_back(moveHistory[moveHistory.size() - 1 - i].move);
+        }
+        return out;
+    }
+
     PlayResult tryPlay(Move m, const RuleSet& rules);
     bool undo();
 
@@ -48,11 +70,15 @@ public:
     // Force player turn (for specific game setups)
     void forceSide(Player p);
 
+    // Sparse occupied cells accessor (for fast scans in generators/eval)
+    const std::vector<Pos>& occupiedPositions() const { return occupied_; }
+
 private:
     static constexpr int N = BOARD_SIZE * BOARD_SIZE;
     static constexpr uint16_t idx(uint8_t x, uint8_t y) { return static_cast<uint16_t>(y * BOARD_SIZE + x); }
 
     std::array<Cell, N> cells {};
+
     Player currentPlayer { Player::Black };
     int blackPairs { 0 }, whitePairs { 0 };
     int blackStones { 0 }, whiteStones { 0 }; // tracked counts
@@ -67,6 +93,12 @@ private:
         Player playerBefore { Player::Black };
     };
     std::vector<UndoEntry> moveHistory;
+
+    // --- Sparse index for occupied cells ---
+    std::vector<Pos> occupied_; // list of occupied positions (both colors)
+    std::array<int16_t, N> occIdx_ {}; // map linear index -> index in occupied_, -1 if empty
+
+    static_assert(BOARD_SIZE * BOARD_SIZE < std::numeric_limits<int16_t>::max(), "occIdx_ requires N < int16_t::max");
 
     // --- Zobrist hash ---
     uint64_t zobristHash = 0;

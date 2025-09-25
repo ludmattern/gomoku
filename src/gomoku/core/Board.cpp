@@ -52,6 +52,8 @@ void Board::reset()
     blackStones = whiteStones = 0;
     gameState = GameStatus::Ongoing;
     moveHistory.clear();
+    occupied_.clear();
+    occIdx_.fill(-1);
 
     // Zobrist
     zobristHash = 0ull;
@@ -272,6 +274,12 @@ PlayResult Board::applyCore(Move m, const RuleSet& rules, bool record)
         ++blackStones;
     else
         ++whiteStones;
+    // Sparse index add
+    {
+        const int id = idx(m.pos.x, m.pos.y);
+        occIdx_[id] = static_cast<int16_t>(occupied_.size());
+        occupied_.push_back(m.pos);
+    }
 
     std::vector<Pos> capturedLocal; // utilisera u.capturedStones si record
     auto& capVec = record ? u.capturedStones : capturedLocal;
@@ -289,6 +297,19 @@ PlayResult Board::applyCore(Move m, const RuleSet& rules, bool record)
                 --blackStones;
             else
                 --whiteStones;
+            // Sparse index remove via swap-pop
+            const int id = idx(rp.x, rp.y);
+            int16_t posIdx = occIdx_[id];
+            if (posIdx >= 0) {
+                const int lastIdx = static_cast<int>(occupied_.size()) - 1;
+                if (posIdx != lastIdx) {
+                    Pos moved = occupied_.back();
+                    occupied_[posIdx] = moved;
+                    occIdx_[moved.toIndex()] = posIdx;
+                }
+                occupied_.pop_back();
+                occIdx_[id] = -1;
+            }
         }
     }
 
@@ -431,6 +452,21 @@ bool Board::undo()
         --blackStones;
     else
         --whiteStones;
+    // Sparse index remove via swap-pop
+    {
+        const int id = idx(u.move.pos.x, u.move.pos.y);
+        int16_t posIdx = occIdx_[id];
+        if (posIdx >= 0) {
+            const int lastIdx = static_cast<int>(occupied_.size()) - 1;
+            if (posIdx != lastIdx) {
+                Pos moved = occupied_.back();
+                occupied_[posIdx] = moved;
+                occIdx_[moved.toIndex()] = posIdx;
+            }
+            occupied_.pop_back();
+            occIdx_[id] = -1;
+        }
+    }
 
     // Restaurer les pierres capturées
     Cell oppC = (u.move.by == Player::Black ? Cell::White : Cell::Black);
@@ -442,6 +478,10 @@ bool Board::undo()
             ++blackStones;
         else
             ++whiteStones;
+        // Sparse index add back
+        const int id = idx(rp.x, rp.y);
+        occIdx_[id] = static_cast<int16_t>(occupied_.size());
+        occupied_.push_back(rp);
     }
     blackPairs = u.blackPairsBefore;
     whitePairs = u.whitePairsBefore;

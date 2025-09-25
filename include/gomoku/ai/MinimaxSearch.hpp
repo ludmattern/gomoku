@@ -40,7 +40,7 @@ public:
     void clearTranspositionTable() { tt.resizeBytes(cfg.ttBytes); }
 
     // Lightweight public helpers for tooling/analysis
-    int evaluatePublic(const Board& /*board*/, Player /*perspective*/) const { return 0; }
+    int evaluatePublic(const Board& board, Player perspective) const { return evaluate(board, perspective); }
     std::vector<Move> orderedMovesPublic(const Board& board, const RuleSet& rules, Player toPlay) const;
 
 private:
