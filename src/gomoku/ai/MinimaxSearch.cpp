@@ -58,8 +58,6 @@ std::optional<Move> MinimaxSearch::bestMove(Board& board, const RuleSet& rules, 
         return std::nullopt;
     }
 
-    // Helpers moved to private methods for readability
-
     // 1) Immediate win shortcut (only if situation permits)
     if (auto iw = tryImmediateWinShortcut(board, rules, toPlay, candidates)) {
         setStats(stats, start, /*nodes*/ 1, /*qnodes*/ 0, /*depth*/ 1, /*ttHits*/ 0, { *iw });
@@ -166,9 +164,20 @@ bool MinimaxSearch::cutoffByTime(const SearchContext& ctx) const
 // Détecte si la position est terminale (victoire, nul, etc.) et renvoie le score associé.
 bool MinimaxSearch::isTerminal(const Board& board, int ply, int& outScore) const
 {
-    // TODO: WinByAlign, WinByCapture, Draw, mate distance correction.
-    (void)board;
-    (void)ply;
+    const auto st = board.status();
+    switch (st) {
+    case GameStatus::Ongoing:
+        outScore = 0;
+        return false;
+    case GameStatus::WinByAlign:
+    case GameStatus::WinByCapture:
+        // Side to move has just been given a losing position (opponent won on previous move)
+        outScore = -MATE_SCORE + ply; // mate distance correction
+        return true;
+    case GameStatus::Draw:
+        outScore = 0;
+        return true;
+    }
     outScore = 0;
     return false;
 }
