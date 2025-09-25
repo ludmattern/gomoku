@@ -33,32 +33,6 @@ namespace {
         return cands;
     }
 
-    // TryPlay + undo to detect immediate wins safely
-    inline bool isImmediateWin(Board& board, const RuleSet& rules, const Move& m)
-    {
-        auto pr = board.tryPlay(m, rules);
-        if (!pr.success)
-            return false;
-        bool win = (board.status() == GameStatus::WinByAlign || board.status() == GameStatus::WinByCapture);
-        board.undo();
-        return win;
-    }
-
-    // Check if an immediate win is plausible: at least 4 stones for alignment, or 4 captured pairs to threaten capture win
-    inline bool shouldTryImmediateWin(const Board& board, Player p)
-    {
-        // Alignment in one move needs at least 4 stones already
-        if (board.stoneCount(p) >= 4)
-            return true;
-
-        // Or capture win in one move if already at 4 pairs
-        auto caps = board.capturedPairs();
-        int pairs = (p == Player::Black) ? caps.black : caps.white;
-        if (pairs >= 4)
-            return true;
-
-        return false;
-    }
 } // namespace
 
 // Note: cellOf and other are now available as playerToCell and opponent in Types.hpp
@@ -228,10 +202,23 @@ void MinimaxSearch::ttStore(const Board& board, int depth, int score, Transposit
 
 std::optional<Move> MinimaxSearch::tryImmediateWinShortcut(Board& board, const RuleSet& rules, Player toPlay, const std::vector<Move>& candidates) const
 {
-    if (!shouldTryImmediateWin(board, toPlay))
+
+    const bool plausibleAlign = board.stoneCount(toPlay) >= 4;
+    const auto caps = board.capturedPairs();
+    const int pairs = (toPlay == Player::Black) ? caps.black : caps.white;
+    const bool plausibleCaptureWin = pairs >= 4;
+
+    // Only attempt if at least one path to immediate win is plausible
+    if (!plausibleAlign && !plausibleCaptureWin)
         return std::nullopt;
+
     for (const auto& m : candidates) {
-        if (isImmediateWin(board, rules, m))
+        auto pr = board.tryPlay(m, rules);
+        if (!pr.success)
+            continue; // skip illegal candidates, don't abort early
+        const auto st = board.status();
+        board.undo();
+        if (st == GameStatus::WinByAlign || st == GameStatus::WinByCapture)
             return m;
     }
     return std::nullopt;
