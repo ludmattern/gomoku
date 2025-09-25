@@ -496,34 +496,45 @@ bool Board::undo()
 std::vector<Move> Board::legalMoves(Player p, const RuleSet& rules) const
 {
     std::vector<Move> out;
-
-    out.reserve(BOARD_SIZE * BOARD_SIZE);
-    for (uint8_t y = 0; y < BOARD_SIZE; ++y) {
-        for (uint8_t x = 0; x < BOARD_SIZE; ++x) {
-            if (at(x, y) != Cell::Empty)
-                continue;
-
-            // Fenêtrage simple: garder cases proches d'une pierre existante
-            bool near = false;
-            for (int dy = -2; dy <= 2 && !near; ++dy) {
-                for (int dx = -2; dx <= 2; ++dx) {
-                    int nx = x + dx, ny = y + dy;
-                    if (!isInside(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny)))
-                        continue;
-                    if (at(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny)) != Cell::Empty) {
-                        near = true;
-                        break;
-                    }
-                }
+    // If the board is empty (no moves yet), fall back to scanning for all empties
+    // to preserve initial-move behavior.
+    if (moveHistory.empty()) {
+        out.reserve(BOARD_SIZE * BOARD_SIZE);
+        for (uint8_t y = 0; y < BOARD_SIZE; ++y) {
+            for (uint8_t x = 0; x < BOARD_SIZE; ++x) {
+                if (at(x, y) != Cell::Empty)
+                    continue;
+                Move m { { x, y }, p };
+                if (createsIllegalDoubleThree(m, rules))
+                    continue;
+                out.push_back(m);
             }
-            if (!near && !moveHistory.empty())
-                continue;
+        }
+        return out;
+    }
 
-            Move m { { x, y }, p };
-            if (createsIllegalDoubleThree(m, rules))
-                continue;
-
-            out.push_back(m);
+    // Otherwise, restrict to empties within Chebyshev distance <= 2 of any occupied cell
+    // using the sparse occupied index to avoid scanning the whole board.
+    std::vector<uint8_t> mark(static_cast<std::size_t>(BOARD_SIZE * BOARD_SIZE), 0);
+    out.reserve(256);
+    for (const auto& s : occupied_) {
+        for (int dy = -2; dy <= 2; ++dy) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                int nx = static_cast<int>(s.x) + dx;
+                int ny = static_cast<int>(s.y) + dy;
+                if (!isInside(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny)))
+                    continue;
+                if (at(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny)) != Cell::Empty)
+                    continue;
+                uint16_t id = idx(static_cast<uint8_t>(nx), static_cast<uint8_t>(ny));
+                if (mark[id])
+                    continue;
+                mark[id] = 1;
+                Move m { { static_cast<uint8_t>(nx), static_cast<uint8_t>(ny) }, p };
+                if (createsIllegalDoubleThree(m, rules))
+                    continue;
+                out.push_back(m);
+            }
         }
     }
     return out;
@@ -532,12 +543,11 @@ std::vector<Move> Board::legalMoves(Player p, const RuleSet& rules) const
 // ------------------------------------------------
 bool Board::hasAnyFive(Cell who) const
 {
-    for (uint8_t y = 0; y < BOARD_SIZE; ++y) {
-        for (uint8_t x = 0; x < BOARD_SIZE; ++x) {
-            if (at(x, y) == who) {
-                if (checkFiveOrMoreFrom({ x, y }, who))
-                    return true;
-            }
+    // Iterate only on occupied cells to avoid scanning empty space
+    for (const auto& p : occupied_) {
+        if (at(p.x, p.y) == who) {
+            if (checkFiveOrMoreFrom(p, who))
+                return true;
         }
     }
     return false;
@@ -556,34 +566,63 @@ bool Board::isFiveBreakableNow(Player justPlayed, const RuleSet& rules) const
     Board base = *this;
     base.forceSide(opp); // au trait pour l'adversaire dans la simulation
 
-    for (int y = 0; y < BOARD_SIZE; ++y) {
-        for (int x = 0; x < BOARD_SIZE; ++x) {
-            if (base.at(static_cast<uint8_t>(x), static_cast<uint8_t>(y)) != Cell::Empty)
-                continue;
-
-            Move mv { Pos { (uint8_t)x, (uint8_t)y }, opp };
-
-            if (!base.wouldCapture(mv))
-                continue; // only capturing moves can break immediately
-
-            Board sim = base;
-            // place the stone and apply captures
-            sim.cells[idx(mv.pos.x, mv.pos.y)] = playerToCell(opp);
-            std::vector<Pos> removed;
-            int gained = sim.applyCapturesAround(mv.pos, playerToCell(opp), rules, removed);
-            if (gained) {
-                if (opp == Player::Black)
-                    sim.blackPairs += gained;
-                else
-                    sim.whitePairs += gained;
+    // Build candidate empties adjacent (in the 4 aligned directions) to justPlayed's stones.
+    // Any XOOX capture square is adjacent to at least one of the two opponent stones (here: meC),
+    // so this neighborhood covers all immediate capture-breaking moves.
+    static constexpr int DX[4] = { 1, 0, 1, 1 };
+    static constexpr int DY[4] = { 0, 1, 1, -1 };
+    std::vector<uint8_t> seen(static_cast<std::size_t>(BOARD_SIZE * BOARD_SIZE), 0);
+    std::vector<Pos> cand;
+    cand.reserve(128);
+    for (const auto& s : base.occupied_) {
+        if (base.at(s.x, s.y) != meC)
+            continue;
+        for (int d = 0; d < 4; ++d) {
+            // + direction
+            int nx1 = static_cast<int>(s.x) + DX[d];
+            int ny1 = static_cast<int>(s.y) + DY[d];
+            if (base.isInside(static_cast<uint8_t>(nx1), static_cast<uint8_t>(ny1)) && base.at(static_cast<uint8_t>(nx1), static_cast<uint8_t>(ny1)) == Cell::Empty) {
+                uint16_t id = idx(static_cast<uint8_t>(nx1), static_cast<uint8_t>(ny1));
+                if (!seen[id]) {
+                    seen[id] = 1;
+                    cand.push_back(Pos { static_cast<uint8_t>(nx1), static_cast<uint8_t>(ny1) });
+                }
             }
-
-            int oppPairsAfter = (opp == Player::Black ? sim.blackPairs : sim.whitePairs);
-            if (oppPairsAfter >= rules.captureWinPairs)
-                return true; // immediate win by capture
-            if (!sim.hasAnyFive(meC))
-                return true; // line is broken by the capture
+            // - direction
+            int nx2 = static_cast<int>(s.x) - DX[d];
+            int ny2 = static_cast<int>(s.y) - DY[d];
+            if (base.isInside(static_cast<uint8_t>(nx2), static_cast<uint8_t>(ny2)) && base.at(static_cast<uint8_t>(nx2), static_cast<uint8_t>(ny2)) == Cell::Empty) {
+                uint16_t id = idx(static_cast<uint8_t>(nx2), static_cast<uint8_t>(ny2));
+                if (!seen[id]) {
+                    seen[id] = 1;
+                    cand.push_back(Pos { static_cast<uint8_t>(nx2), static_cast<uint8_t>(ny2) });
+                }
+            }
         }
+    }
+
+    for (const auto& pos : cand) {
+        Move mv { pos, opp };
+        if (!base.wouldCapture(mv))
+            continue; // only capturing moves can break immediately
+
+        Board sim = base;
+        // place the stone and apply captures
+        sim.cells[idx(mv.pos.x, mv.pos.y)] = playerToCell(opp);
+        std::vector<Pos> removed;
+        int gained = sim.applyCapturesAround(mv.pos, playerToCell(opp), rules, removed);
+        if (gained) {
+            if (opp == Player::Black)
+                sim.blackPairs += gained;
+            else
+                sim.whitePairs += gained;
+        }
+
+        int oppPairsAfter = (opp == Player::Black ? sim.blackPairs : sim.whitePairs);
+        if (oppPairsAfter >= rules.captureWinPairs)
+            return true; // immediate win by capture
+        if (!sim.hasAnyFive(meC))
+            return true; // line is broken by the capture
     }
     return false;
 }
