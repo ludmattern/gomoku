@@ -5,8 +5,7 @@
 
 namespace gomoku::application {
 
-GameService::GameService(
-    std::unique_ptr<ISearchEngine> searchEngine)
+GameService::GameService(std::unique_ptr<ISearchEngine> searchEngine)
     : board_(std::make_unique<Board>())
     , searchEngine_(std::move(searchEngine))
 {
@@ -127,7 +126,6 @@ void GameService::setSearchEngine(std::unique_ptr<ISearchEngine> engine)
 {
     searchEngine_ = std::move(engine);
 }
-
 
 bool GameService::validateMove(const Move& move, std::string* reason) const
 {

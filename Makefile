@@ -8,6 +8,13 @@ CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -O2 -Wpedantic \
 # Enable parallel compilation by default
 MAKEFLAGS += -j$(shell nproc)
 
+# Verbose mode (show full commands)
+ifdef VERBOSE
+	Q =
+else
+	Q = @
+endif
+
 # Operating system detection
 UNAME_S := $(shell uname -s)
 
@@ -74,67 +81,94 @@ TEST_OBJ = $(TEST_SRC:%.cpp=$(OBJ_DIR)/%.o)
 CXXFLAGS += -MMD
 DEPFILES := $(CORE_OBJ:%.o=%.d) $(GUI_OBJ:%.o=%.d) $(TEST_OBJ:%.o=%.d)
 
-# Default rule: build the GUI executable
-all: $(TARGET)
+# Default rule: check dependencies, build and install
+all: check-deps-auto $(TARGET) install
+
+# Internal rule to check and install SFML automatically
+check-deps-auto:
+	@echo "[AUTO-DEPS] Checking SFML dependencies..."
+	@if [ "$(UNAME_S)" = "Darwin" ]; then \
+		if ! brew list sfml >/dev/null 2>&1; then \
+			echo "[AUTO-DEPS] SFML not found, installing via Homebrew..."; \
+			$(MAKE) SFML; \
+		else \
+			echo "[AUTO-DEPS] SFML found via Homebrew"; \
+		fi; \
+	else \
+		if [ ! -f "$(SFML_DIR)/lib/libsfml-graphics.so" ] && [ ! -f "$(SFML_DIR)/lib64/libsfml-graphics.so" ]; then \
+			echo "[AUTO-DEPS] SFML not found in $(SFML_DIR), attempting installation..."; \
+			$(MAKE) SFML; \
+		else \
+			echo "[AUTO-DEPS] SFML found in $(SFML_DIR)"; \
+		fi; \
+	fi
 
 # Core static library (no SFML linking required)
 $(LIB_NAME): $(CORE_OBJ)
 	@mkdir -p $(dir $@)
 	@echo "[AR] $@"
-	ar rcs $@ $(CORE_OBJ)
+	$(Q)ar rcs $@ $(CORE_OBJ)
+
+# Rule to build only (without auto-install)
+build: $(TARGET)
 
 # GUI executable: links the lib + SFML
 $(TARGET): $(GUI_OBJ) $(LIB_NAME)
 	@mkdir -p $(dir $@)
 	@echo "[LD] $@"
-	$(CXX) $(GUI_OBJ) $(LIB_NAME) $(SFML_LIBS) $(SFML_RPATH) $(LDFLAGS) -o $@
+	$(Q)$(CXX) $(GUI_OBJ) $(LIB_NAME) $(SFML_LIBS) $(SFML_RPATH) $(LDFLAGS) -o $@
 
 # Tests: binary without SFML, linked against the core lib
 $(TEST_BIN): $(TEST_OBJ) $(LIB_NAME)
 	@echo "[LD] $@"
-	$(CXX) $(TEST_OBJ) $(LIB_NAME) -o $@
+	$(Q)$(CXX) $(TEST_OBJ) $(LIB_NAME) -o $@
 
 # Rule to compile objects (common)
 $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	@echo "[CC] $<"
-	$(CXX) $(CXXFLAGS) -Isrc -I$(INCLUDE_DIR) $(SFML_INCLUDE) -c $< -o $@
+	$(Q)$(CXX) $(CXXFLAGS) -Isrc -I$(INCLUDE_DIR) $(SFML_INCLUDE) -c $< -o $@
 
 # Debug rule (GUI + symbols)
 debug: CXXFLAGS += -g -DDEBUG
 debug: $(TARGET)
 
+# Install rule (optional)
+install: $(TARGET)
+	@echo "[INSTALL] Installing Gomoku"
+	@echo "[INSTALL] Binary: $< -> ~/bin/"
+	@mkdir -p ~/bin
+	@cp $(TARGET) ~/bin/
+	@cd desktop && ./install_desktop.sh
+
 # Clean rule
-clean:
+clean: 
 	@rm -rf $(BUILD_DIR)
 	@rm -rf logs/
 
 # Full clean rule
-fclean: clean
+fclean: uninstall clean
 	@rm -f $(TARGET) $(LIB_NAME) $(TEST_BIN)
 	@if [ -f "$(HOME)/.config/gomoku/preferences.json" ]; then \
 		rm -rf "$(HOME)/.config/gomoku"; \
 		echo "[FCLEAN] Removed user config: $(HOME)/.config/gomoku/preferences.json"; \
 	fi
 
+# Uninstall rule - removes both binary and desktop integration
+uninstall:
+	@echo "[UNINSTALL] Removing Gomoku"
+	@cd desktop && ./uninstall_desktop.sh
+	@echo "[UNINSTALL] Removing binary from ~/bin/"
+	@rm -f ~/bin/$(notdir $(TARGET))
+
 # Rebuild rule
 re: fclean
 	@$(MAKE) all
-
-# Install rule (optional)
-install: $(TARGET)
-	@echo "[INSTALL] $< -> ~/bin/"
-	@mkdir -p ~/bin
-	@cp $(TARGET) ~/bin/
 
 # SFML setup - delegates to script for complex logic
 SFML:
 	@echo "[SFML] Setting up SFML"
 	@./scripts/setup_sfml.sh
-
-# Uninstall rule
-uninstall:
-	@rm -f ~/bin/$(notdir $(TARGET))
 
 # Help rule
 help:
@@ -142,7 +176,8 @@ help:
 	@echo "Gomoku Project Makefile"
 	@echo ""
 	@echo "Build Targets:"
-	@echo "  all       - Build main GUI executable (default)"
+	@echo "  all       - Check deps, build and install automatically (default)"
+	@echo "  build     - Build main GUI executable only (no auto-install)"
 	@echo "  lib       - Build core library only"
 	@echo "  debug     - Build with debug symbols (-g -DDEBUG)"
 	@echo "  test      - Build and run tests"
@@ -157,8 +192,11 @@ help:
 	@echo "  check-deps- Check system dependencies"
 	@echo ""
 	@echo "Install Targets:"
-	@echo "  install   - Install executable to ~/bin/"
-	@echo "  uninstall - Remove from ~/bin/"
+	@echo "  install   - Install executable + desktop integration"
+	@echo "  uninstall - Remove executable + desktop integration"
+	@echo ""
+	@echo "Options:"
+	@echo "  VERBOSE=1 - Show full compiler commands"
 	@echo ""
 	@echo "System Info:"
 	@echo "  System: $(UNAME_S)"
@@ -206,4 +244,4 @@ test: $(TEST_BIN)
 -include $(wildcard $(DEPFILES))
 
 # Phony rules
-.PHONY: all debug clean fclean re install uninstall help check-deps test SFML lib setup
+.PHONY: all build check-deps-auto debug clean fclean re install uninstall install-desktop uninstall-desktop help check-deps test SFML lib setup
